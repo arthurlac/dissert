@@ -4,10 +4,13 @@
 \title{Proposal}
 \author{Arthur}
 
+\setlength{\parindent}{1em}
+\setlength{\parskip}{1em}
+
 \begin{document}
 \section{Introduction}
 
-In the dissertation I will explore both the relation and use of monads and algebraic effects.
+In the dissertation I will explore both the relation and use of monads and algebraic effects,
 I will also try to establish the theoretical foundations of these concepts.
 Finally I will present programs where monads and algebraic effects are equivalent or
 inequivalent. Concluding with a discussion of the ramifications of the latter.
@@ -16,20 +19,15 @@ inequivalent. Concluding with a discussion of the ramifications of the latter.
 Moggi \cite{Moggi:hc} introduced the computational lambda calculus (${\lambda}_c$-calculus)
 and computational monads. Demonstrating non-determinism, side-effects, and continuations.
 
-\par
 In pure function functional languages monads have become the de facto abstraction for effects.
-This practise was established \cite{wadler1990}.
+This practise was established in this paper \cite{wadler1990}.
 
-\par
 Algebraic effects \cite{plotkin2001adequacy} and their handlers \cite{Plotkin:2001jr}
 can be used for non-determinism, side-effects, and continuations just like monads.
-
-\par
-Along with handlers \cite{Plotkin:2009dr},
-algebraic effects have seen a rise in popularity in functional programming languages.
+Algebraic effects have seen a rise in popularity in functional programming languages.
 With effect handlers programs can be written in an imperative direct style.
-In my literature survey I will try to ascertain the state of the art in this area.
-See \cite{Lindley:2016vz, Dolan:2017, leijen:16, Bauer:2013fn} and more.
+In my dissertation I will try to ascertain the state of the art in this area.
+See \cite{Bauer:2013fn, leijen:16, Lindley:2016vz, Dolan:2017} and more.
 
 
 
@@ -46,42 +44,42 @@ See \cite{Lindley:2016vz, Dolan:2017, leijen:16, Bauer:2013fn} and more.
   \item Final deadline week 31
 \end{enumerate}
 
-Firstly there is the literature survey where I will be able to achieve my first objective
+Firstly there is the literature survey where I will be able to achieve my objective
 of establishing and analysing the theoretical foundations of both monads and algebraic
 effects.
 I will do this by focusing on the analysis and understanding of three key papers.
 This will necessitate the understanding of auxiliary and related papers.
 
-\par
 For the literature survey a deadline of week eight is suggested however for this project I would
-counter suggest a deadline of week nineteen. Simply because the understanding of the theoretical
-foundations is crucial to the success of the dissertation.
-Of course these papers require considerable background knowledge, as such
-I intend to allocate three weeks each for these papers.
+counter suggest a deadline of week nineteen (weeks 12-18 are Christmas and January exams).
+Simply because the understanding of the theoretical foundations is crucial to the success of the
+ dissertation. Along with the time and effort I have already spent understanding the theory this
+should be an achievable deadline and give ample time to reevaluate scope and direction at this point of the project.
 
-\par
 Beginning with paper 1a;
 I will also read papers in that area to develop a more complete understanding
 \cite{wadler2003marriage, wadler1994monads, PeytonJones:1993}.
+Perhaps reflecting on my usage of monads in programming and developing some sample
+programs to compare to algebraic effects further on.
 Next I will focus on \cite{Moggi:hc}.
 Finally \cite{Plotkin:2001jr} also reading \cite{plotkin2001adequacy, Plotkin:2002dw}.
+The latter two papers require the most theoretical knowledge, a considerable portion
+of time must be allocated for this.
+I will be focusing on reading primarily \cite{barr1990category} for this background knowledge.
 
-\par
 The natural conclusion of my literature survey should be the resolution to the goals I set out
-in the beginning of this document. Specifically
-  "explore both the relation and use of monads and algebraic effects"
-and
-  "establish the theoretical foundations of these concepts";
-the success of my literature survey could be judged by how effectively these goals are 
+in the beginning of this document; to "explore both the relation and use of monads and
+algebraic effects".
+The success of my literature survey could be judged by how effectively these goals are 
 achieved.
 
-\par
 What follows my literature survey should be first to
   "present programs where monads and algebraic effects are equivalent or inequivalent"
 and then
   "concluding with a discussion of the ramifications of the latter".
 After the literature survey is complete I will of course be in a better position to decide
-the best way to satisfy these goals;
+the best way to achieve these goals, thus towards the end of my literature survey I will
+review my plan for those goals.
 
 
 \medskip
