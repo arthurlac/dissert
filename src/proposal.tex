@@ -1,13 +1,15 @@
 \documentclass[a4paper,10pt]{article}
 \usepackage{amsmath}
 
-\title{Proposal}
+\title{A comparison of algebraic effects and monads}
 \author{Arthur}
+\date{\today}
 
 \setlength{\parindent}{1em}
 \setlength{\parskip}{1em}
 
 \begin{document}
+\maketitle
 \section{Introduction}
 
 In the dissertation I will explore both the relation and use of monads and algebraic effects,
@@ -34,33 +36,60 @@ See \cite{Bauer:2013fn, leijen:16, Lindley:2016vz, Dolan:2017} and more.
 \section{Plan}
 
 \begin{enumerate}
-  \item Literature survey, weeks 4 - 11, 19. Focusing on:
-    \begin{enumerate}
-      \item Comprehending monads                     \cite{wadler1990}
-      \item Computational lambda-calculus and monads \cite{Moggi:hc}
-      \item Semantics for Algebraic Operations       \cite{Plotkin:2001jr}
-    \end{enumerate}
-  \item Demonstration of progress week 21
-  \item Final deadline week 31
+  \item Comprehending monads                     \cite{wadler1990}
+  \item Computational lambda-calculus and monads \cite{Moggi:hc}
+  \item Semantics for Algebraic Operations       \cite{Plotkin:2001jr}
 \end{enumerate}
 
-Firstly there is the literature survey where I will be able to achieve my objective
-of establishing and analysing the theoretical foundations of both monads and algebraic
-effects.
-I will do this by focusing on the analysis and understanding of three key papers.
-This will necessitate the understanding of auxiliary and related papers.
+of establishing and analysing the theoretical foundations of both monads and algebraic effects.
 
-For the literature survey a deadline of week eight is suggested however for this project I would
-counter suggest a deadline of week nineteen (weeks 12-18 are Christmas and January exams).
-Simply because the understanding of the theoretical foundations is crucial to the success of the
- dissertation. Along with the time and effort I have already spent understanding the theory this
-should be an achievable deadline and give ample time to reevaluate scope and direction at this point of the project.
 
-Beginning with paper 1a;
+
+
 I will also read papers in that area to develop a more complete understanding
 \cite{wadler2003marriage, wadler1994monads, PeytonJones:1993}.
 Perhaps reflecting on my usage of monads in programming and developing some sample
 programs to compare to algebraic effects further on.
+
+A monad over a category $\mathcal{C}$ is a triple $(T,\eta,\mu)$. Where
+
+\begin{equation}
+  \begin{split}
+    T    &:: \mathcal{C} \rightarrow \mathcal{C} \\
+    \eta &:: Id_{\mathcal{C}} \rightarrow T       \\
+    \mu  &:: T^{2} \rightarrow T
+  \end{split}
+\end{equation}
+and the following holds
+\begin{equation}
+  \begin{split}
+    \eta &:: Id_{\mathcal{C}} \rightarrow T       \\
+    \mu  &:: T^{2} \rightarrow T
+  \end{split}
+\end{equation}
+
+
+Typically a program will think
+
+\begin{equation}
+  \begin{split}
+    return &:: x \rightarrow M x                                 \\
+    map    &:: (x \rightarrow y) \rightarrow M x \rightarrow M y \\
+    join   &:: M (M x) \rightarrow M x
+  \end{split}
+\end{equation}
+
+One may also see
+
+\begin{equation}
+  bind :: M x \rightarrow (x \rightarrow M y) \rightarrow M y
+\end{equation}
+
+
+
+
+
+
 Next I will focus on \cite{Moggi:hc}.
 Finally \cite{Plotkin:2001jr} also reading \cite{plotkin2001adequacy, Plotkin:2002dw}.
 The latter two papers require the most theoretical knowledge, a considerable portion
