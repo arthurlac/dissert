@@ -1,5 +1,6 @@
 \documentclass[a4paper,10pt]{article}
 \usepackage{amsmath}
+\usepackage{listings}
 
 \title{A comparison of algebraic effects and monads}
 \author{Arthur}
@@ -10,14 +11,14 @@
 
 \begin{document}
 \maketitle
-\section{Introduction}
+\section{Abstract}
 
 In the dissertation I will explore both the relation and use of monads and algebraic effects,
 I will also try to establish the theoretical foundations of these concepts.
 Finally I will present programs where monads and algebraic effects are equivalent or
 inequivalent. Concluding with a discussion of the ramifications of the latter.
 
-\subsection{Topic overview}
+\section{Overview}
 Moggi \cite{Moggi:hc} introduced the computational lambda calculus (${\lambda}_c$-calculus)
 and computational monads. Demonstrating non-determinism, side-effects, and continuations.
 
@@ -30,26 +31,6 @@ Algebraic effects have seen a rise in popularity in functional programming langu
 With effect handlers programs can be written in an imperative direct style.
 In my dissertation I will try to ascertain the state of the art in this area.
 See \cite{Bauer:2013fn, leijen:16, Lindley:2016vz, Dolan:2017} and more.
-
-
-
-\section{Plan}
-
-\begin{enumerate}
-  \item Comprehending monads                     \cite{wadler1990}
-  \item Computational lambda-calculus and monads \cite{Moggi:hc}
-  \item Semantics for Algebraic Operations       \cite{Plotkin:2001jr}
-\end{enumerate}
-
-of establishing and analysing the theoretical foundations of both monads and algebraic effects.
-
-
-
-
-I will also read papers in that area to develop a more complete understanding
-\cite{wadler2003marriage, wadler1994monads, PeytonJones:1993}.
-Perhaps reflecting on my usage of monads in programming and developing some sample
-programs to compare to algebraic effects further on.
 
 A monad over a category $\mathcal{C}$ is a triple $(T,\eta,\mu)$. Where
 
@@ -73,9 +54,9 @@ Typically a program will think
 
 \begin{equation}
   \begin{split}
-    return &:: x \rightarrow M x                                 \\
-    map    &:: (x \rightarrow y) \rightarrow M x \rightarrow M y \\
-    join   &:: M (M x) \rightarrow M x
+    unit &:: x \rightarrow M x                                 \\
+    map  &:: (x \rightarrow y) \rightarrow M x \rightarrow M y \\
+    join &:: M (M x) \rightarrow M x
   \end{split}
 \end{equation}
 
@@ -85,30 +66,20 @@ One may also see
   bind :: M x \rightarrow (x \rightarrow M y) \rightarrow M y
 \end{equation}
 
+\section{Use of monads}
+Monads are frequently used to structure programs, in my scheduler example monads are
+used for concurrency, error handling. Consider this example.
 
+\begin{lstlisting}
+    let%bind name   =  find_essential "name"                     in
+    let%bind prog   =  find_essential "prog"                     in
+    let%bind args   = (find_essential "args"   >>= parse_args  ) in
+    let%bind run_at = (find_essential "run_at" >>= parse_run_at) in
+    (* Optionals, no monad trickiness *)
+    let stdin  = find_optional "stdin"  in
+    let stdout = find_optional "stdout" in
+\end{lstlisting}
 
-
-
-
-Next I will focus on \cite{Moggi:hc}.
-Finally \cite{Plotkin:2001jr} also reading \cite{plotkin2001adequacy, Plotkin:2002dw}.
-The latter two papers require the most theoretical knowledge, a considerable portion
-of time must be allocated for this.
-I will be focusing on reading primarily \cite{barr1990category} for this background knowledge.
-
-The natural conclusion of my literature survey should be the resolution to the goals I set out
-in the beginning of this document; to "explore both the relation and use of monads and
-algebraic effects".
-The success of my literature survey could be judged by how effectively these goals are 
-achieved.
-
-What follows my literature survey should be first to
-  "present programs where monads and algebraic effects are equivalent or inequivalent"
-and then
-  "concluding with a discussion of the ramifications of the latter".
-After the literature survey is complete I will of course be in a better position to decide
-the best way to achieve these goals, thus towards the end of my literature survey I will
-review my plan for those goals.
 
 
 \medskip
