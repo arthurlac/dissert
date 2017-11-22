@@ -1,1 +1,1 @@
-pdflatex dissert.tex
+bibtex dissert && pdflatex dissert.tex

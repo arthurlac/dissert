@@ -13,10 +13,10 @@
 \maketitle
 \section{Abstract}
 
-In the dissertation I will explore both the relation and use of monads and algebraic effects,
+I will explore both the relation and use of monads and algebraic effects,
+illustrating this through rewriting a scheduling application which uses
+monadic concurrency to use alegbraic effects; examining the tradeoffs made.
 I will also try to establish the theoretical foundations of these concepts.
-Finally I will present programs where monads and algebraic effects are equivalent or
-inequivalent. Concluding with a discussion of the ramifications of the latter.
 
 \section{Overview}
 Moggi \cite{Moggi:hc} introduced the computational lambda calculus (${\lambda}_c$-calculus)
@@ -32,7 +32,10 @@ With effect handlers programs can be written in an imperative direct style.
 In my dissertation I will try to ascertain the state of the art in this area.
 See \cite{Bauer:2013fn, leijen:16, Lindley:2016vz, Dolan:2017} and more.
 
-A monad over a category $\mathcal{C}$ is a triple $(T,\eta,\mu)$. Where
+\section{Monads}
+
+Moggi \cite{moggi} defines a monad over a category $\mathcal{C}$ as a triple
+$(T,\eta,\mu)$, where
 
 \begin{equation}
   \begin{split}
@@ -49,8 +52,8 @@ and the following holds
   \end{split}
 \end{equation}
 
-
-Typically a program will think
+Typically a programmer will think of a monad as a signature of three
+functions:
 
 \begin{equation}
   \begin{split}
@@ -60,31 +63,118 @@ Typically a program will think
   \end{split}
 \end{equation}
 
-One may also see
+Unit is also sometimes referred to as return, as unit is also the type with a single inhabitant.
+One may also see bind as which is similar to map.
 
 \begin{equation}
   bind :: M x \rightarrow (x \rightarrow M y) \rightarrow M y
 \end{equation}
 
-\section{Use of monads}
+\subsection{Use of monads}
+Monads have multiple uses, 
+
 Monads are frequently used to structure programs, in my scheduler example monads are
-used for concurrency, error handling. Consider this example.
+used for concurrency, error handling.
 
-\begin{lstlisting}
-    let%bind name   =  find_essential "name"                     in
-    let%bind prog   =  find_essential "prog"                     in
-    let%bind args   = (find_essential "args"   >>= parse_args  ) in
-    let%bind run_at = (find_essential "run_at" >>= parse_run_at) in
-    (* Optionals, no monad trickiness *)
-    let stdin  = find_optional "stdin"  in
-    let stdout = find_optional "stdout" in
-\end{lstlisting}
+OCaml has non-nullable types i.e; one will never see null where one is expecting an
+int or a binary tree or anything else.
+Null values are explicit. The cannocical representation of null is the None variant.
+Monads are used to structure computation with the option type.
 
+\begin{verbatim}
+  type 'a option = Some 'a | None
+  val return : 'a -> 'a option
+  val join   : 'a option option -> 'a option
+  val map    : 'a option -> ('a -> 'b) -> 'b option
+\end{verbatim}
 
+Consider this example code for searching a trie data structure. Briefly,
+a trie is key value data structure; where the key is a string (considered a
+list of chars in this example). Each node has an option value and a list of
+children. The root of the trie represents the empty string. Two auxillary
+functions find child and val extract are used in the search code;
+val extract simply returns the first value in a pair, find child searchs
+the list of children returning the node with the matching character given
+if the child exists.
+
+\begin{verbatim}
+  type ('c, 'v) t = Trie of 'v option * (('c * ('c, 'v) t) list)
+  val find_child  : ('c, 'v) t -> 'c -> ('c, 'v) t option
+  val val_extract : ('c, 'v) t -> 'v option
+  val get         : ('c, 'v) t -> 'c list -> 'v option
+\end{verbatim}
+
+We use to bind as as infix operator \texttt{>>=} to structure the program.
+
+In the search code t is the trie, key is a list of characters over which
+we iterate the search function. For each character we call find child on
+the current node. Find child, if succesful, will return the next node
+upon which we continue the search with the remaining characters. Once we
+are at the last character we know to try and extract the value from the end
+node. The key point here is that using bind allows us to succintly only code
+for the happy case but deal with the error case at every step.
+
+\begin{verbatim}
+  let get t key =
+    let rec search chars t =
+        match chars with
+        | []      -> val_extract t
+        | c :: cs -> bind_search (find_child t c) cs
+    and bind_search ot chars = ot >>= search chars
+    in search key t
+\end{verbatim}
+
+The result type is similar to the option type, however we use an extra type
+parameter for the unhappy case, essentially the result type encapsulates 
+either an error or a correct computation result.
+
+\begin{verbatim}
+  type ('a, 'e) result = Ok of 'a | Error of 'e
+  val bind : ('a, 'e) result
+          -> ('a -> ('b, 'e) result)
+          -> ('b, 'e) result
+\end{verbatim}
+
+In this example we have a list assocation which is a list of pairs, in this case both
+items in the pairs are strings.
+
+\begin{verbatim}
+  let list_assoc_to_job la =
+    let find k = match List.Assoc.find la k with
+      | None -> Error (Err.missing_key k)
+      | Some v -> Ok v
+    in
+    find "name"   >>=                  (fun name   ->
+    find "prog"   >>=                  (fun prog   ->
+    find "args"   >>= parse_args   >>= (fun args   ->
+    find "run_at" >>= parse_run_at >>= (fun run_at ->
+      Ok (Job.create name prog args run_at ())
+    ))))
+\end{verbatim}
+
+Bind is used to succintly short circuit a computation when a value can not be
+correctly obtained. As such this allows the program to be structured neatly to return
+an error with precise information for which key could not be found or which value could
+not be parsed. The result monad is very similar to the option monad. It would be interesting
+to examine whether algebraic effects can be used to structure a program in a similar manner.
+
+\begin{verbatim}
+  let rec schedule job =
+    let time = Job.next_occur job in
+    Async.run_at time Job.run job
+    >>= schedule job
+\end{verbatim}
+
+These examples clearly illustrate how useful monads can be for structuring a program.
+
+Monads are not just used to structure programs, they can be used for IO.
+
+\section{Algebraic Effects}
+\subsection{Use of algebraic effects}
 
 \medskip
 
 \bibliographystyle{unsrt}
-\bibliography{proposal}
+\bibliography{dissert}
 
 \end{document}
