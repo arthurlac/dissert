@@ -1,1 +1,5 @@
-bibtex dissert && pdflatex dissert.tex
+set -e
+pdflatex dissert
+bibtex   dissert
+pdflatex dissert
+pdflatex dissert
