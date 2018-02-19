@@ -24,17 +24,16 @@
 \maketitle
 \section{Abstract}
 
-I will explore both the relation and use of monads and algebraic effects,
-illustrating this through rewriting a scheduling application which uses
-monadic concurrency to use algebraic effects; examining the trade-offs made.
+Effects are tricky, and essential!
+Programmers have long sought to make them more predictable;
+this may come at the cost of complexity.
+In this paper I will present and explore
+the relation and use of monads and algebraic effects,
 I will also try to establish the theoretical foundations of these concepts.
-
-Effects are tricky, and essential , programmers have long sought to make them more predictable
-this comes at costs.
 
 \section{Monads}
 
-Moggi \cite{moggi1989computational} introduced a categorical semantics of computation
+Moggi \cite{moggi1989computational} introduced categorical semantics of computation
 based on monads. Moggi defines a monad over a category $\mathcal{C}$ as a triple $(T,\eta,\mu)$,
 where $T$ is a functor, $\eta$ and $\mu$ are natural transformations. He further defines a
 a computational model which allows computations with effects such as non-deterministic 
@@ -50,56 +49,78 @@ computation, side effects, and continuations.
 
 Typically a programmer will think of a monad as three function signatures
 which correspond to the triple defined by Moggi; of course much more
-informally, \texttt{fmap} coresponds to the functor $T$, \texttt{return} and \texttt{join} to the
+informally, \texttt{bind} coresponds to the functor $T$, \texttt{unit} and \texttt{join} to the
 natural transformations $\eta$ and $\mu$ respectively.
 
 \begin{equation}
   \begin{split}
-    fmap   &:: M x \rightarrow (x \rightarrow y) \rightarrow M y \\
-    return &:: x \rightarrow M x                                 \\
-    join   &:: M (M x) \rightarrow M x
+    bind &:: M x \rightarrow (x \rightarrow M y) \rightarrow M y \\
+    unit &:: x \rightarrow M x                                   \\
+    join &:: M (M x) \rightarrow M x
   \end{split}
 \end{equation}
 
-One may also see \texttt{bind} which is similar to $fmap$.
-Bind is typically used as an infix operator, we shall use $\gg$ as a binary
-operator for bind.
-
+One may also see \texttt{map} which is similar to \texttt{bind}.
 \begin{equation}
-  bind :: M x \rightarrow (x \rightarrow M y) \rightarrow M y
+  map :: M x \rightarrow (x \rightarrow y) \rightarrow M y
 \end{equation}
 
-Bind is effectively $\lambda x. \lambda f.join (fmap (\lambda z. return (f z)) x$,
-it exists largely for programmer convenience to avoid using fmap when the
+Both map and bind are typically used as infix operators.
+We shall use $\gg$ as a binary operator for bind.
 
-Monad laws
+To ensure we are indeed talking about monads, these functions must follow a few
+rules or laws. In practise these laws must be obeyed so we can chain computations
+in predictable and understandable ways.
+
 \begin{itemize}
-	\item Left identity - $(return\ a) \gg f = f a$
-	\item Right identity - $m \gg return = m$
+	\item Left identity - $(unit\ a) \gg f = f a$
+	\item Right identity - $m \gg unit = m$
 	\item Associativity - $(m \gg f) \gg g = m \gg (\lambda x \rightarrow f x \gg g)$
 \end{itemize}
 
-Note that these axioms mirror those of a monoid $(M,\ \cdot,\ e)$,
-where \textit{bind} corresponds to $\cdot$ and
-$e$ corresponds to \textit{return} such that
-$$\forall\ x, y, z \in M\ (x \cdot y) \cdot z = x \cdot (y \cdot z)$$
-$$\forall\ m \in M\ m \cdot e = e \cdot m = m$$
+%%TODO Kleisli composition operator
+%%Note that these axioms mirror those of a monoid $(M,\ \cdot,\ e)$,
+%%where \textit{bind} corresponds to $\cdot$ and
+%%$e$ corresponds to \textit{unit} such that
+%%$$\forall\ x, y, z \in M\ (x \cdot y) \cdot z = x \cdot (y \cdot z)$$
+%%$$\forall\ m \in M\ m \cdot e = e \cdot m = m$$
 
 \subsection{Use of monads}
+
 Wadler \cite{wadler1990comprehending} demonstrated the use of monads in a pure
 functional programming language to simulate effects. I will explore examples similar to
-the exception monads Wadler presents. Monads are frequently used
-to structure programs. For example OCaml has non-nullable types
+the exception monads Wadler presents.
+
+Firstly I will attempt to demonstrate how monads are used to structure programs.
+In this example we will not that OCaml has non-nullable types
 i.e; one will never see null where one is expecting an
 int or a binary tree or anything else.
-Null values are explicit. The cannocical representation of null is the None variant.
-Monads are used to structure computation with the option type.
+Null values are always explicit.
+The cannocical representation of null is the None variant.
+Monads can be used to succintly and expressively structure computation with the option type.
 
 \begin{verbatim}
   type 'a option = Some 'a | None
-  val return : 'a -> 'a option
-  val join   : 'a option option -> 'a option
-  val map    : 'a option -> ('a -> 'b) -> 'b option
+  val unit : 'a -> 'a option
+  val join : 'a option option -> 'a option
+  val map  : 'a option -> ('a -> 'b) -> 'b option
+\end{verbatim}
+
+The code for these three functions is simple and fairly self-evident.
+However from this simple code we can construct much more complicated code which we
+will be certain will never have a \textit{NullPointerException}.
+Personally, such an assurance is invaluable in creating correct programs.
+Here it's important to note that the effect is the \textit{NullPointerException};
+we deal with it much more cleanly and effectively 100\% of the time using monads.
+
+\begin{verbatim}
+  let unit a = Some a
+  let join = function
+      | Some (Some a) -> Some a
+      | _ -> None
+  let map a f = match a with
+      | None -> None
+      | Some b -> f b
 \end{verbatim}
 
 Consider this example code for searching a trie data structure. Briefly,
@@ -115,10 +136,21 @@ if the child exists.
   type ('c, 'v) t = Trie of 'v option * (('c * ('c, 'v) t) list)
   val find_child  : ('c, 'v) t -> 'c -> ('c, 'v) t option
   val val_extract : ('c, 'v) t -> 'v option
+  val create      : 'c list -> 'v -> ('c, 'v) t
   val get         : ('c, 'v) t -> 'c list -> 'v option
+
+  let create key data =
+    let rec aux = function
+      | []      -> Trie (Some data, [])
+      | c :: cs -> Trie (None, [(c, aux cs)])
+    in aux key
 \end{verbatim}
 
-We use to bind as as infix operator \texttt{>>=} to structure the program.
+Create is shown to just illustrate the data structure,
+we simply iterated across the list creating a node in the trie for each character
+until the list is exhausted at which point we insert the value.
+
+It is convention to use bind as the infix operator "\texttt{>>=}".
 
 In the search code t is the trie, key is a list of characters over which
 we iterate the search function. For each character we call find child on
@@ -173,22 +205,54 @@ an error with precise information for which key could not be found or which valu
 not be parsed. The result monad is very similar to the option monad. It would be interesting
 to examine whether algebraic effects can be used to structure a program in a similar manner.
 
-These examples clearly illustrate how useful monads can be for structuring a program.
+Typically programming languages allow the elison of the anonymous function on the right hand side
+of the bind to simply introduce the binding into the environment;
+in this case OCaml ppx extension points are used in the form \textit{let\%bind}.
+This is largely just a programmer convienence,
+for comparison Haskell offers \textit{do notation} for the same end.
+
+\begin{verbatim}
+  let list_assoc_to_job la =
+    let find k = match List.Assoc.find la k with
+      | None -> Error (Err.missing_key k)
+      | Some v -> Ok v
+    in
+    let%bind name   =  find "name"                     in
+    let%bind prog   =  find "prog"                     in
+    let%bind args   = (find "args"   >>= parse_args  ) in
+    let%bind run_at = (find "run_at" >>= parse_run_at) in
+    Ok (Job.create name prog args run_at ())
+\end{verbatim}
+
+%%TODO
+Imperative programming is undeniably popular, and much closer to how computers physically work,
+monads have been concretely shown to be an effective method of replicating
+imperative style and retaining benefits of purity \cite{PeytonJones:1993}.
+These examples clearly illustrate how useful monads can be for structuring a program,
+however the importance and necessity of monads is that for pure functional languages
+to be actually useful we require effects. Monads give us means to achieve that.
 
 \section{Algebraic Effects}
 
+%%TODO Allow us to reconcile being with doing
+%%allowing the programmer to separate the expression of an effectful computation from its implementation."\cite{dolan2015effective}
+
 Algebraic effects, like monads, can be used to model effects in a pure language.
-In programming they are often paired with handlers, where algebraic operations construct effects
-handlers are dual, they deconstruct effects \cite{plotkin2009handlers}.
+Where Moggi \cite{moggi1989computational} proposed monads to give categorical semantics to computational effects;
+Power and Plotkin \cite{Plotkin:2002dw} propose "computational effects as being realised by
+families of operations, with a monad being generated by their equational theory".
+This means we can treat effects algebraically,
+to actually interact with them as programming constructs algebraic effects are paired with
+handlers \cite{plotkin2009handlers}.
+Where algebraic operations construct effects handlers are the dual, they deconstruct effects.
 
-"Algebraic effect handlers concisely describe many complex control-flow constructs
-in various programming languages" \cite{leijen2017type}
+Currently algebraic effects are a popular area of research,
+it has been shown that they can "concisely describe many complex control-flow constructs" \cite{leijen2017type}.
+They "provide a modular abstraction for expressing effectful computation"\cite{dolan2015effective},
+in this section I will examine to what extent they can be equivalently used to monads and wether
+they provide the same benefits.
 
-"Algebraic effects and handlers provide a modular abstraction for expressing effectful computation,
-allowing the programmer to separate the expression of an effectful computation from its implementation."
-\cite{dolan2015effective}
-
-"the signature of the effect operations forms a free algebra which gives rise to a free monad. Free monads provide a natural way to give semantics to effects, where handlers describe a fold over the algebra of operations [44]. Using a more operational perspective, we can also view algebraic effects as resumable exceptions (or perhaps as a more structured form of delimited continuations)." \cite{leijen2017type}
+%%"the signature of the effect operations forms a free algebra which gives rise to a free monad. Free monads provide a natural way to give semantics to effects, where handlers describe a fold over the algebra of operations [44]. Using a more operational perspective, we can also view algebraic effects as resumable exceptions (or perhaps as a more structured form of delimited continuations)." \cite{leijen2017type}
 
 
 \medskip
