@@ -35,28 +35,7 @@
 \begin{document}
 \section{Abstract}
 
-Effects are tricky, and essential!
-Programmers have long sought to make them more predictable;
-this may come at the cost of complexity.
-In this paper I will present and explore
-the relation and use of monads and algebraic effects,
-I will also try to establish the theoretical foundations of these concepts.
-I will present example code showing
-Explain where monad-like patterns arise in imperative programming and how monads are often a better alternative
-
-THE KEY POINT IS MONADS ARE GREAT FOR STRUCTURING PROGRAMS TO BE ~good
-
-elucidate the relation between monads and algebraic effects
-explain the use of both
-
-The goal of this paper will be to explain both monads and algebraic effects
-and their effectiveness as programming techniques.
-At the end of this paper will be an abridged version which will
-As such the success can be judged by how well it explains the use and benefits of both monads and algebraic effects.
-Demonstrate monad-like programming techniques are already common in imperative languages
-
-An overview of how is paper is structured is as such
-
+KEY IDEAS:
 Monads and Computation
 Notions of Computation Determine Monads
 Algebraic Effects
@@ -67,9 +46,23 @@ Why functional Progamming matters
 Conclusion: category theory times functional programming matters
 Category theory as a framework for better software
 
+
+Effects are tricky, and essential!
+Programmers have long sought to make them more predictable;
+this may come at the cost of complexity.
+
+The goal of this paper will be to explain both monads and algebraic effects
+elucidate the relation between monads and algebraic effects
+and their effectiveness as programming techniques.
+I will present example code showing
+Demonstrate monad-like programming techniques are already common in imperative languages
+Explain where monad-like patterns arise in imperative programming and how monads are often a better alternative
+THE KEY POINT IS MONADS ARE GREAT FOR STRUCTURING PROGRAMS TO BE understandable/reliable/correct
+
 Finally I will present an abridged version which forgoes some theory and background
 with the goal of introducing and advocating for the concepts
 target audience being programmers
+As such the success can be judged by how well it explains the use and benefits of both monads and algebraic effects.
 
 \pagebreak
 \tableofcontents
@@ -94,15 +87,26 @@ we should define what an effect exactly is.
 Note that effects $\neq$ side effects,
 for example input/output and mutable states are side effects
 however non-determinism is not.
-"a side effect if it modifies some state outside its scope or has an observable interaction with its calling functions or the outside world besides returning a value."CHANGEME
-\cite{hughes1989functional}
 \begin{definition}
     An \textit{effect} is
 \end{definition}
 
 \begin{definition}
     A \textit{side effect} is
+"a side effect if it modifies some state outside its scope or has an observable interaction with its calling functions or the outside world besides returning a value."CHANGEME
+\cite{hughes1989functional}
 \end{definition}
+
+Why do effects make life hard?
+Largely because effects mean we can not employ equational reasoning,
+this makes engineering larger programs more complicated
+A great deal of trouble can happen when something is implicit
+rather than explicit.
+
+We want to maximise the amount of erroneous programs the type-checker will not except
+
+type and effect systems
+\cite{nielson1999type}
 
 \subsection{Referential transparency}
 \begin{definition}
@@ -121,6 +125,7 @@ What does it mean to be pure?
 
 Relation to lambda calculus and $\beta$-equality
 In a pure language we have $\beta$-equality
+in an impure language 
 
 CONC WE NEED EFFECTS BUT THEY ARE TRICKY, SO VERY TRICKY
 We have to ask in what ways can we deal with effects?
@@ -573,6 +578,7 @@ We get this for free with monads!
 
 
 \subsection{Monad Transformers}
+Monad transformers add functionality of one monad to another.
 We often find that difficulty arises when trying to compose monads,
 say we have a stateful computation a
 

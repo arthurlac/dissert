@@ -4,5 +4,6 @@
 *.bbl
 *.blg
 *.pdf
+*.bib
 *.DS_Store
 *.toc
