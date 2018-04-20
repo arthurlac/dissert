@@ -147,6 +147,7 @@ What tools do we have as a programmer at our disposal here????
 Following this we will present two ideas both originating from CT
 which give us tools for effectful programming
 
+\pagebreak
 \section{Categorical Views of Effects}
 \subsection{Overview}
 %Category theorists invented monads in the 1960s to concisely of universal algebra􏰊\cite{wadler1990comprehending}
@@ -267,7 +268,7 @@ and its applications: for example, they are central to the category-theoretic ac
     \end{center}
 \end{definition}
 %TODO
-which satisfies also an extra equalizing requirement: ηA: A → T A is an equalizer of ηTA and T(ηA), i.e. for any f:B → TA s.t. f;ηTA = f;T(ηA) there exists a unique m:B → A s.t. f = m;ηA3.
+%which satisfies also an extra equalizing requirement: ηA: A → T A is an equalizer of ηTA and T(ηA), i.e. for any f:B → TA s.t. f;ηTA = f;T(ηA) there exists a unique m:B → A s.t. f = m;ηA3.
 
 \subsection{Kleisli Category}
 \begin{definition}
@@ -313,51 +314,55 @@ where $\gg$ has these axioms
     \eta_Y \gg f \equiv f \equiv f \gg \eta_X
 \end{equation}
 
-\subsection{$\lambda_c$-Calculus}
-
-Extended simply typed lambda-calculus to
-the computational lambda-calculus, or $\lambda_c$-calculus,
-He defines a computational model which allows computations with effects such as non-deterministic 
-computation, side effects, and continuations.
-
+\subsection{Computational $\lambda$-Calculus}
 Moggi \cite{moggi1989computational}
 introduced categorical semantics for computation based on monads.
-"a program denotes a morphism from $A$ (the object of values of type $A$) to $TB$ (the object of computations of type B)"
-"partial computations (of type $B$) is the lifting $B + \{\bot\}$"
+He extended the simply typed lambda-calculus to
+the computational lambda-calculus, or $\lambda_c$-calculus,
+which allows computations with effects such as
+non-determinism, side effects, and continuations.
+In this model "a program denotes a morphism from $A$
+(the object of values of type $A$) to $TB$
+(the object of computations of type B)"
+for example
+"partial computations (of type $B$) is the lifting $B + \{\bot\}$".
+Another example would be the type \texttt{IO Int}
+meaning interactive input/output computations of integers.
 
-"According to the view of “programs as functions from values to computations” the natural category for interpreting programs is not C, but the Kleisli category."
 
 Cartesian closed category to model the simply typed lambda calculus
-A λc-model over a category C with finite products is a strong monad (T,η,μ,t) together with a T -exponential for every pair ⟨A, B⟩ of objects in C
+A $\lambda_c$-model over a category $C$ with finite products is a strong monad $(T,\eta,\mu,t)$
+together with a $T$-exponential for every pair $\langle A, B\rangle$ of objects in $C$
 Moggi
 
-examples
-Example non-deterministic computations:
-• T( ) is the covariant powerset functor, i.e.
-T(A) = P(A) and T(f)(X) is the image of X along f
-• ηA is the singleton map a 􏰀→ {a}
-• μA isthebigunionmapX􏰀→∪X
+To give two examples of the $\lambda_C$-calculus, which we will elaborate on further later,
+These examples from \cite{moggi1989computational}\cite{moggi1991notions} will be revisited later.
+\vspace{5mm}
 
-Example
-computations with side-effects:
-• T() is the functor (S → ( ×S)), where S is a nonempty set of stores. Intuitively a computation takes a store and returns a value together with the modified store.
-• ηA is the map a 􏰀→ (λs:S.⟨a,s⟩)
-• μA is the map f 􏰀→ (λs:S.eval(fs)), i.e. μA(f) is the computation that given a store s, first computes the pair computation-store ⟨f′,s′⟩ = fs and then returns the pair value-store ⟨a,s′′⟩ = f′s′.
+\begin{example}
+    Non-deterministic computations:
+    \begin{itemize}
+        \item $T(-)$ is the covariant powerset functor,
+            i.e.  $T(A)$ = $P(A)$ and $T(f)(X)$ is the image of X along f
+        \item $\eta_A$ is the singleton map $a \rightarrow  \{a\}$
+        \item $\mu_A(X)$ is the big union $\bigcup X$
+    \end{itemize}
+\end{example}
 
+\vspace{5mm}
 
-
-\cite{moggi1991notions}
-notions of computation given in Example 1.1 and show that they are indeed part of suitable Kleisli triples.
-• nondeterminism TA = Pfin(A)
-ηA is the singleton map a 􏰀→ {a}
-if f:A → TB and c ∈ TA, then f∗(c) = ∪x∈cf(x)
-• side-effectsTA=(A×S)S
-ηA is the map a 􏰀→ (λs: S.⟨a, s⟩)
-if f:A → TB and c ∈ TA, then f∗(c) = λs:S.(let⟨a,s′⟩ = c(s)inf(a)(s′))
-"When reasoning about programs one has only one monad, because the programming language is fixed, and the main aim is to prove properties of programs. In this case the obvious choice for the term language is the programming language itself, which is more naturally interpreted in the Kleisli category."
-
-
-
+\begin{example}
+    Computations with side-effects:
+    \begin{itemize}
+        \item $T(-)$ is the functor $(-\times S)^S$, where $S$ is a nonempty set of stores.
+            Intuitively a computation takes a store and returns a value together with the modified store.
+        \item $\eta_A$ is the map $a \rightarrow (\lambda s:S.\langle a,s \rangle)$
+        \item $\mu_A$ is the map $f \rightarrow (\lambda s:S.eval(fs))$,
+            i.e. $\mu_A(f)$ is the computation that given a store $s$,
+            first computes the pair computation-store $\langle f\prime,s\prime\rangle = fs$
+            and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
+    \end{itemize}
+\end{example}
 
 \subsection{Lawvere Theories}
 "a class of theories that can be viewed as categories with a monad, so that any category with a monad is, up to equivalence (of categories with a monad), one of such theories. Such a reformulation in terms of theories is more suitable for formal manipulation and more appealing to those unfamiliar with Category Theory."
@@ -370,12 +375,12 @@ if f:A → TB and c ∈ TA, then f∗(c) = λs:S.(let⟨a,s′⟩ = c(s)inf(a)(s
 "the computational effects we consider are easily described as countable enriched Lawvere theories freely generated by such operations and equations."
 "We overview a programme to provide a unified semantics for computational effects based upon the notion of a countable enriched Lawvere theory."\cite{plotkin2004computational}
 "The notion of countable enriched Lawvere theory provides us with a natural way to describe how computational effects may be combined. Typically, one takes the disjoint union of the operations, together with all the equations, and adds further equations relating the two classes of operations: one might add no equations, yielding the sum of effects; one might demand the two families of operations commute with each other, yielding the commutative combination of effects; or one might ask for distributivity of one family of operations over the other, or perhaps of each family over the other."
-The countable Lawvere theory LI/O for interactive input/output is the free countable Lawvere theory generated by operations read : I −→ 1
-and write : 1 −→ O, where I is a countable set of inputs and O of outputs. So, interactive input/output is more directly modelled by the countable Lawvere theory than by the corresponding monad T X = μY.(O × Y + Y I + X).
+%The countable Lawvere theory LI/O for interactive input/output is the free countable Lawvere theory generated by operations read : I −→ 1
+%and write : 1 −→ O, where I is a countable set of inputs and O of outputs. So, interactive input/output is more directly modelled by the countable Lawvere theory than by the corresponding monad T X = μY.(O × Y + Y I + X).
 An enriched Lawvere theory is generated by operations subject to equa- tions. Operations appear directly in describing programming languages, but equations do not.
 one of the equations for side-effects is
-updateloc,v (updateloc,v′ (x)) = updateloc,v′ (x) and the corresponding program assertion is
-(l := x;let y be !l in M) = (l := x;M[x/y])
+%updateloc,v (updateloc,v′ (x)) = updateloc,v′ (x) and the corresponding program assertion is
+%(l := x;let y be !l in M) = (l := x;M[x/y])
 
 
 \cite{plotkin2001adequacy}
@@ -385,6 +390,7 @@ This mathematical background is, regrettably, beyond the scope of this document.
 In mathematical practice Lawvere theories arise whenever one has a functor into a category with finite products and one studies the natural transformations between finite products of the functor.
 \cite{hyland2007category}
 
+\pagebreak
 \section{Monads in the Wild}
 Typically a programmer will think of a monad as three function signatures
 which correspond to the triple $(T,\eta,\mu)$;
@@ -405,12 +411,16 @@ however the semantics are exactly the same.
   \end{split}
 \end{equation}
 
-To be a faithful monad implementation it must be true that:
+To be a correct monad implementation it must be true that:
 \begin{equation}
   \begin{split}
-      \lambda f.\lambda x.join(return (fmap\ f\ x))
+      \lambda f.\lambda x.return\ (fmap\ f\ x)
       &\equiv
-      \lambda f.\lambda x.join(fmap\ (return \circ f)\ x))
+      \lambda f.\lambda x.fmap\ (return \circ f)\ x)
+      \\
+      \lambda f.\lambda x.fmap\ f\ x
+      &\equiv
+      \lambda f.\lambda x.fmap\ f\ (fmap\ id\ x)
       \\
       \lambda f.\lambda x.join\ (join\ (fmap\ f\ x))
       &\equiv
@@ -477,6 +487,7 @@ however it is wise for monad implementations to obey them so that
 we can chain computations in predictable and understandable ways.
 
 \subsection{State Monad Example}
+\subsection{Non-Determinism Monad Example}
 
 \subsection{Monads for Structuring Programs}
 In this section I will illustrate how effective monads are when used to structure programs.
@@ -663,6 +674,7 @@ say we have a stateful computation a
 
 
 
+\pagebreak
 \section{Algebraic Effects}
 
 \begin{example}
@@ -761,8 +773,10 @@ effects that allow a representation by opera- tions and equations
 \subsection{Rebuilding our trie with algebraic effects}
 \subsection{Composing algebraic effects}
 
+\pagebreak
 \section{Abridged version}
 
+\pagebreak
 \section{Conclusion}
 
 \medskip
