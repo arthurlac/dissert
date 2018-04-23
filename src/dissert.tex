@@ -216,7 +216,10 @@ the \textit{codomain}.\\
             such that $U$ respects both composition and identity.
             I.e.
             \begin{equation}
-                Uf \circ Ug = U(f \circ g) \quad U\,Id_X = Id_{UX}
+                Uf \circ Ug = U(f \circ g)
+            \end{equation}
+            \begin{equation}
+                U\,Id_X = Id_{UX}
             \end{equation}
     \end{itemize}
 \end{definition}
@@ -335,8 +338,8 @@ a $\lambda_c$-model over a category $C$ with finite products is a strong monad $
 together with a $T$-exponential for every pair $\langle A, B\rangle$ of objects in $C$
 \cite{moggi1989computational}.
 
-To give two examples of the $\lambda_C$-calculus, which we will elaborate on further later,
-These examples from \cite{moggi1989computational}\cite{moggi1991notions} will be revisited later.
+Here are two examples of the $\lambda_C$-calculus
+\cite{moggi1989computational}\cite{moggi1991notions}.
 \vspace{5mm}
 
 \begin{example}\label{lc1}
@@ -487,12 +490,21 @@ however one often sees \texttt{bind} where
     bind :: M x \rightarrow (x \rightarrow M y) \rightarrow M y
 \end{equation}
 It is convention to use bind as the infix operator "\texttt{>>=}".
-Bind is formulated as
 \begin{equation}
-    g >>= f = \lambda x. join (g (f x))
+    (>>=) :: (Monad m) => m a -> (a -> m b) -> m b\\
+    xs >>= f = join (fmap f xs)
 \end{equation}
 Bind is a hugely useful tool for programmers;
 because often we want to sequence
+
+Consider that join can be expressed in terms of \texttt{bind} with \texttt{id}
+\begin{equation}
+    join m = m >>= id
+\end{equation}
+and furthermore so can \texttt{fmap} with \texttt{return}.
+\begin{equation}
+    fmap f x = (return x) >>= f
+\end{equation}
 
 Because \texttt{bind} is often found with \texttt{(fmap,join,return)}
 We can reformulate our axioms in terms of bind
@@ -506,10 +518,9 @@ indeed the axioms are often reformulated this way because it is simpler.
 \end{equation}
 
 We can further rephrase ourselves in terms
-of the \textit{Kleisli composition operator}
-
+of the \textit{Kleisli composition operator} $\gg$ where
 \begin{equation}
-    kc :: (x \rightarrow M y) \rightarrow (y \rightarrow M z) \rightarrow x \rightarrow M z
+    \gg :: (x \rightarrow M y) \rightarrow (y \rightarrow M z) \rightarrow (x \rightarrow M z)
 \end{equation}
 where we have
 \begin{equation}
@@ -537,16 +548,50 @@ Computations with side-effects:
         and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
 \end{itemize}
 
-\subsection{Non-Determinism Monad Example}
-Recall \ref{lc2}
-Non-deterministic computations:
-\begin{itemize}
-    \item $T(-)$ is the covariant powerset functor,
-        i.e.  $T(A)$ = $P(A)$ and $T(f)(X)$ is the image of X along f
-    \item $\eta_A$ is the singleton map $a \rightarrow  \{a\}$
-    \item $\mu_A(X)$ is the big union $\bigcup X$
-\end{itemize}
+\begin{verbatim}
+class Monad m => MonadState s m | m -> s where
+    -- | Return the state from the internals of the monad.
+    get :: m s
+    get = state (\s -> (s, s))
 
+    -- | Replace the state inside the monad.
+    put :: s -> m ()
+    put s = state (\_ -> ((), s))
+
+    -- | Embed a simple state action into the monad.
+    state :: (s -> (a, s)) -> m a
+    state f = do
+      s <- get
+      let ~(a, s') = f s
+      put s'
+      return a
+
+join :: (State s (State s a)) -> (State s a)
+join xss = State (\s -> uncurry runState (runState xss s))
+
+--------------------------------------------------------------------
+type GameValue = Int
+type GameState = (Bool, Int)
+
+playGame :: String -> State GameState GameValue
+playGame []     = do
+    (_, score) <- get
+    return score
+
+playGame (x:xs) = do
+    (on, score) <- get
+    case x of
+         'a' | on -> put (on, score + 1)
+         'b' | on -> put (on, score - 1)
+         'c'      -> put (not on, score)
+         _        -> put (on, score)
+    playGame xs
+
+startState = (False, 0)
+
+main = print $ evalState (playGame "abcaaacbbcabbab") startState
+\end{verbatim}
+\cite{jones1995functional}
 
 \subsection{Monads for Structuring Programs}
 In this section I will illustrate how effective monads are when used to structure programs.
@@ -750,7 +795,8 @@ and imperative programmers have monad-like features
 
 
 
-
+"Moreover, effect handlers allow con- current programs to be written in direct-style retaining the simplicity of sequential code as opposed to callback-oriented style with either monadic concurrency libraries such as Lwt [8] and Async [5] for OCaml or explicit callbacks."
+\cite{dolaneffectively}
 
 "The use of monads to structure functional programs is de- scribed. Monads provide a convenient framework for simulating effects found in other languages, such as global state, exception handling, out- put, or non-determinism. Three case studies are looked at in detail: how monads ease the modification of a simple evaluator; how monads act as the basis of a datatype of arrays subject to in-place update; and how monads can be used to build parsers.
 "
@@ -880,7 +926,13 @@ let incr_twice () : int =
 \end{verbatim}
 %http://gallium.inria.fr/~scherer/doc/effect-handlers-talk.html#/sec-effect-handlers--examples
 
+\subsection{Nondet}
+%Example 3. Nondeterminism Let C be the category of ω-cpo’s. Then the cat- egoryofalgebrasfortheconvexpower-domain[5,18,1]isthecategoryofsemi- latticesinC(i.e.,structureswithanassociative,commutative,idempotentbi- naryoperation),equippedwithaleastelement⊥.Similarfactsaretrueofthe upper and lower power-domains, except that each requires an additional equa- tional axiom in the setting of [10].
+\cite{Plotkin:2002dw}
+
 \subsection{Draft}
+%"There are computationally natural families of operations associated with sev- eral of the above monads: one has ‘raise’ operations for exceptions; one has ‘read’ and ‘write’ operations associated with interactive input/output; one has a nonde- terministic binary ‘choice’ operation when modelling nondeterminism; one has a ‘random choice’ operation for probabilistic nondeterminism; and one has ‘lookup’ and ‘update’ operations when modelling global state. An analysis of several of thesefamiliesofoperationsappearsin[20]:theyareregardedasalgebraicfami- lies of operations associated with an already given monad, and are characterised intermsofgenericeffects:e.g.,togiveagenericeffecte:n−→Tmisequivalent togivingmn-aryalgebraicfamiliesofoperations,wheremandnneednotbe finite(misthem-foldcoproductof1inC).Cruciallywhenamonadisgiven byalgebraicoperationsandequationsinthesenseof[10],thealgebraicfamilies of operations associated with it are given by the derived operations."
+\cite{Plotkin:2002dw}
 
 It is important to seperate values from operations, operations give rise to effects,
 there is a difference here in being and doing
@@ -918,15 +970,24 @@ A concrete example of fmap/bind/join expressed in JavaScript or ECMAScript is
 \begin{verbatim}
     const arr = [1,2,3,4];
     const fmap = (f,x) => x.map(f); //Easy in JS for arrays
-    console.log(fmap(x => x + 1, arr)); // === Array [2,3,4,5]
+    console.log(fmap(x => x + 1, arr));
+    // === Array [2,3,4,5]
 
     //Note we use 'unit' as return is a keyword
     const unit = x => [x];
-    console.log(unit(1)); // === Array [1]
+    console.log(unit(1));
+    // === Array [1]
 
     const arr2 = [[1, 2], [3, 4]];
-    const join = x => x.reduce((acc, val) => acc.concat(val), []);
-    console.log(join(arr2)); // === Array [1, 2, 3, 4]
+    const append = (onto, val) => onto.concat(val);
+    const join = x => x.reduce(append, []);
+    console.log(join(arr2));
+    // === Array [1, 2, 3, 4]
+
+    const bind = (x, f) => join(fmap(f,x));
+    const double = x => [x,x];
+    console.log(bind(arr1, double));
+    // === Array [1, 1, 2, 2, 3, 3, 4, 4]
 \end{verbatim}
 
 Or in OCaml
