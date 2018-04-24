@@ -1,0 +1,60 @@
+\section{Abridged version}
+
+A concrete example of fmap/bind/join expressed in JavaScript or ECMAScript is
+\begin{verbatim}
+    const arr = [1,2,3,4];
+    const fmap = (f,x) => x.map(f); //Easy in JS for arrays
+    console.log(fmap(x => x + 1, arr));
+    // === Array [2,3,4,5]
+
+    //Note we use 'unit' as return is a keyword
+    const unit = x => [x];
+    console.log(unit(1));
+    // === Array [1]
+
+    const arr2 = [[1, 2], [3, 4]];
+    const append = (onto, val) => onto.concat(val);
+    const join = x => x.reduce(append, []);
+    console.log(join(arr2));
+    // === Array [1, 2, 3, 4]
+
+    const bind = (x, f) => join(fmap(f,x));
+    const double = x => [x,x];
+    console.log(bind(arr1, double));
+    // === Array [1, 1, 2, 2, 3, 3, 4, 4]
+\end{verbatim}
+
+Or in OCaml
+\begin{verbatim}
+    let fmap f x =
+        let rec aux = function
+        | [] -> []
+        | hd :: tl -> (f hd) :: (aux tl)
+    in aux x
+
+    val fmap : ('a -> 'b) -> 'a list -> 'b list
+
+    fmap (fun x -> x + 1) [1;2;3;4];;
+    - : int list = [2; 3; 4; 5]
+
+\end{verbatim}
+Then we have
+\begin{verbatim}
+    let return x = [x];;
+
+    val return : 'a -> 'a list
+
+    return 1;;
+    - : int list = [1]
+\end{verbatim}
+Then we have
+\begin{verbatim}
+    let rec join = function
+    | [] -> []
+    | hd :: tl -> hd @ (join tl)
+
+    val join : 'a list list -> 'a list
+
+    join [[1;2];[3;4]];;
+    - : int list = [1; 2; 3; 4]
+\end{verbatim}

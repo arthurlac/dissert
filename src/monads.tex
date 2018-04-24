@@ -1,0 +1,437 @@
+\section{Monads in the Wild}
+Typically a programmer will think of a monad as three function signatures
+which correspond to the triple $(T,\eta,\mu)$;
+of course much more informally.
+Firstly \texttt{fmap} corresponds to the functor $T$,
+then we have \texttt{return} and \texttt{join} which correspond to
+the natural transformations $\eta$ and $\mu$ respectively.
+Sometimes other names are used,
+for example \texttt{map} instead of \texttt{fmap}
+or \texttt{pure/unit}instead of \texttt{return},
+however the semantics are exactly the same.
+
+\begin{equation}
+  \begin{split}
+    fmap   &:: M x \rightarrow (x \rightarrow y) \rightarrow M y \\
+    return &:: x \rightarrow M x                                 \\
+    join   &:: M (M x) \rightarrow M x
+  \end{split}
+\end{equation}
+
+To be a correct monad implementation it must be true that:
+\begin{equation}
+  \begin{split}
+      \lambda f.\lambda x.return\ (fmap\ f\ x)
+      &\equiv
+      \lambda f.\lambda x.fmap\ (return \circ f)\ x)
+      \\
+      \lambda f.\lambda x.fmap\ f\ x
+      &\equiv
+      \lambda f.\lambda x.fmap\ f\ (fmap\ id\ x)
+      \\
+      \lambda f.\lambda x.join\ (join\ (fmap\ f\ x))
+      &\equiv
+      \lambda f.\lambda x.join(fmap\ f\ (join\ x))
+  \end{split}
+\end{equation}
+
+%TODO
+Contrast these monad laws with the diagrams
+\begin{equation}
+    \begin{tikzcd}[sep=large]
+        T \rar{\eta_T} \drar[swap]{1_{C}} & T^2 \dar{\mu} & \lar[swap]{T\eta} \dlar{1_{C}} T \\
+                                           & T            &
+    \end{tikzcd}
+    \quad
+    \begin{tikzcd}[sep=large]
+        T^3 \rar{T\mu} \dar[swap]{\mu_T} & T^2 \dar{\mu} \\
+        T^2 \rar[swap]{\mu}                    & T
+    \end{tikzcd}
+\end{equation}
+
+For programmers the essence of a monad is \texttt{fmap}
+this is because
+however one often sees \texttt{bind} where
+\begin{equation}
+    bind :: M x \rightarrow (x \rightarrow M y) \rightarrow M y
+\end{equation}
+It is convention to use bind as the infix operator "$\bind$".
+\begin{equation}
+    mx \bind f = join\ (fmap\ f\ mx)
+\end{equation}
+Bind is a hugely useful tool for programmers;
+because often we want to sequence
+
+Consider that join can be expressed in terms of \texttt{bind} with \texttt{id}
+\begin{equation}
+    join\ m = m \bind id
+\end{equation}
+and furthermore so can \texttt{fmap} with \texttt{return}.
+\begin{equation}
+    fmap\ f\ x = (return\ x) \bind f
+\end{equation}
+
+Because \texttt{bind} is often found with \texttt{(fmap,join,return)}
+We can reformulate our axioms in terms of bind
+indeed the axioms are often reformulated this way because it is simpler.
+\begin{equation}
+  \begin{split}
+      return\ x \bind f     &\equiv f x \\
+             m \bind return &\equiv m   \\
+      (m \bind f) \bind g     &\equiv m \bind (\lambda x.(fx \bind g))
+  \end{split}
+\end{equation}
+
+We can further rephrase ourselves in terms
+of the \textit{Kleisli composition operator} $\gg$ where
+\begin{equation}
+    \gg :: (x \rightarrow M y) \rightarrow (y \rightarrow M z) \rightarrow (x \rightarrow M z)
+\end{equation}
+where we have
+\begin{equation}
+    (f \gg g) \gg h \equiv f \gg (g \gg h)
+\end{equation}
+\begin{equation}
+    return \gg f \equiv f \equiv f \gg return
+\end{equation}
+
+Do programming monads need to follow the same rules as category theory monads?
+There is no way for the compiler to check these rules so practically the answer is no,
+however it is wise for monad implementations to obey them so that
+we can chain computations in predictable and understandable ways.
+
+\subsection{State Monad Example}
+Firstly recall our example \ref{lc1}
+Computations with side-effects:
+\begin{itemize}
+    \item $T(-)$ is the functor $(-\times S)^S$, where $S$ is a nonempty set of stores.
+        Intuitively a computation takes a store and returns a value together with the modified store.
+    \item $\eta_A$ is the map $a \rightarrow (\lambda s:S.\langle a,s \rangle)$
+    \item $\mu_A$ is the map $f \rightarrow (\lambda s:S.eval(fs))$,
+        i.e. $\mu_A(f)$ is the computation that given a store $s$,
+        first computes the pair computation-store $\langle f\prime,s\prime\rangle = fs$
+        and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
+\end{itemize}
+
+\begin{verbatim}
+class Monad m => MonadState s m | m -> s where
+    -- | Return the state from the internals of the monad.
+    get :: m s
+    get = state (\s -> (s, s))
+
+    -- | Replace the state inside the monad.
+    put :: s -> m ()
+    put s = state (\_ -> ((), s))
+
+    -- | Embed a simple state action into the monad.
+    state :: (s -> (a, s)) -> m a
+    state f = do
+      s <- get
+      let ~(a, s') = f s
+      put s'
+      return a
+
+join :: (State s (State s a)) -> (State s a)
+join xss = State (\s -> uncurry runState (runState xss s))
+
+--------------------------------------------------------------------
+type GameValue = Int
+type GameState = (Bool, Int)
+
+playGame :: String -> State GameState GameValue
+playGame []     = do
+    (_, score) <- get
+    return score
+
+playGame (x:xs) = do
+    (on, score) <- get
+    case x of
+         'a' | on -> put (on, score + 1)
+         'b' | on -> put (on, score - 1)
+         'c'      -> put (not on, score)
+         _        -> put (on, score)
+    playGame xs
+
+startState = (False, 0)
+
+main = print $ evalState (playGame "abcaaacbbcabbab") startState
+\end{verbatim}
+\cite{jones1995functional}
+
+\subsection{Monads for Structuring Programs}
+In this section I will illustrate how effective monads are when used to structure programs.
+
+Firstly one should note that OCaml has non-nullable types
+i.e; one will never see null where one is expecting an
+int or a binary tree or anything else.
+Null values are always explicit.
+The canonical representation of null is the None variant.
+Why is this?
+Why do we need monads to this?
+What do other languages do?
+Monads can be used to succinctly and expressively structure computation with the option type.
+
+\begin{verbatim}
+  type 'a option = Some 'a | None
+  val return : 'a -> 'a option
+  val join   : 'a option option -> 'a option
+  val fmap   : 'a option -> ('a -> 'b) -> 'b option
+\end{verbatim}
+
+The code for these three functions is simple and fairly self-evident.
+However from this simple basis we can construct much more complicated programs which we
+will be certain will never have a \textit{NullPointerException}.
+Furthermore the type system will ensure 
+It will refuse to compile nonsensical code which does not type-check.
+Such an assurance is invaluable in creating correct programs.
+Here it's important to note that the effect is the \textit{NullPointerException};
+we deal with it much more cleanly and effectively 100\% of the time using monads.
+
+\begin{verbatim}
+  let return a = Some a
+  let join = function
+      | Some (Some a) -> Some a
+      | _ -> None
+  let map a f = match a with
+      | None -> None
+      | Some b -> f b
+\end{verbatim}
+
+Consider this example code for searching a trie data structure.
+Briefly, a trie is key value data structure;
+where the key is a finite sequence of values
+(typically a string which is equivalent to a sequence of characters).
+Each node has an option value and a list of children.
+The root of the trie represents the empty string.
+Two auxiliary functions \texttt{find\_child} and \texttt{val\_extract}
+are used in the search code; \texttt{val\_extract}
+simply returns the first value in a pair,
+find child searchs the list of children returning
+the node with the matching character given;
+that is only should that child exists.
+
+\begin{verbatim}
+  type ('k, 'v) t = Trie of 'v option * (('k * ('k, 'v) t) list)
+  val find_child  : ('k, 'v) t -> 'k -> ('k, 'v) t option
+  val val_extract : ('k, 'v) t -> 'v option
+  val create      : 'k list -> 'v -> ('k, 'v) t
+  val get         : ('k, 'v) t -> 'k list -> 'v option
+
+  let create key data =
+    let rec aux = function
+      | []      -> Trie (Some data, [])
+      | c :: cs -> Trie (None, [(c, aux cs)])
+    in aux key
+\end{verbatim}
+
+Create is shown to just illustrate the data structure,
+we simply iterate across the list creating a node in the trie for each character
+until the list is exhausted at which point we insert the value.
+
+%TODO tikz example of the data structure
+
+In the search code t is the trie, key is a list of characters over which
+we iterate the search function. For each character we call find child on
+the current node. Find child, if succesful, will return the next node
+upon which we continue the search with the remaining characters. Once we
+are at the last character we know to try and extract the value from the end
+node. The key point here is that using bind allows us to succintly only code
+for the happy case but deal with the error case at every step.
+
+\begin{verbatim}
+  let get t key =
+    let rec search chars t =
+        match chars with
+        | []      -> val_extract t
+        | c :: cs -> bind_search (find_child t c) cs
+    and bind_search ot chars = ot >>= search chars
+    in search key t
+\end{verbatim}
+
+The result type is similar to the option type, however we use an extra type
+parameter for the unhappy case, essentially the result type encapsulates 
+either an error or a correct computation result. The result monad
+corresponds to a generalisation of the exception monad presented by Wadler \cite{wadler1995monads}.
+
+\begin{verbatim}
+  type ('a, 'e) result = Ok of 'a | Error of 'e
+  val bind : ('a, 'e) result
+          -> ('a -> ('b, 'e) result)
+          -> ('b, 'e) result
+\end{verbatim}
+
+In this example we have a list assocation which is a list of pairs, in this case both
+items in the pairs are strings.
+
+\begin{verbatim}
+  let list_assoc_to_job la =
+    let find k = match List.Assoc.find la k with
+      | None -> Error (Err.missing_key k)
+      | Some v -> Ok v
+    in
+    find "name"   >>=                  (fun name   ->
+    find "prog"   >>=                  (fun prog   ->
+    find "args"   >>= parse_args   >>= (fun args   ->
+    find "run_at" >>= parse_run_at >>= (fun run_at ->
+      Ok (Job.create name prog args run_at ())
+    ))))
+\end{verbatim}
+
+Bind is used to succintly short circuit a computation when a value can not be
+correctly obtained. As such this allows the program to be structured neatly to return
+an error with precise information for which key could not be found or which value could
+not be parsed. The result monad is very similar to the option monad. It would be interesting
+to examine whether algebraic effects can be used to structure a program in a similar manner.
+
+Typically programming languages allow the elison of the anonymous function on the right hand side
+of the bind to simply introduce the binding into the environment;
+in this case OCaml ppx extension points are used in the form \textit{let\%bind}.
+This is largely just a programmer convienence,
+for comparison Haskell offers \textit{do notation} for the same end.
+
+\begin{verbatim}
+do { x } = x
+ 
+do { x ; <stmts> }
+  = x >> do { <stmts> }
+ 
+do { v <- x ; <stmts> }
+  = x >>= \v -> do { <stmts> }
+ 
+do { let <decls> ; <stmts> }
+  = let <decls> in do { <stmts> }
+\end{verbatim}
+\begin{verbatim}
+  let list_assoc_to_job la =
+    let find k = match List.Assoc.find la k with
+      | None -> Error (Err.missing_key k)
+      | Some v -> Ok v
+    in
+    let%bind name   =  find "name"                     in
+    let%bind prog   =  find "prog"                     in
+    let%bind args   = (find "args"   >>= parse_args  ) in
+    let%bind run_at = (find "run_at" >>= parse_run_at) in
+    Ok (Job.create name prog args run_at ())
+\end{verbatim}
+
+\begin{verbatim}
+  let list_assoc_to_job la =
+    let find k = match List.Assoc.find la k with
+      | None -> Error (Err.missing_key k)
+      | Some v -> Ok v
+    in
+    find "name"   >>=                  (fun name   ->
+    find "prog"   >>=                  (fun prog   ->
+    find "args"   >>= parse_args   >>= (fun args   ->
+    find "run_at" >>= parse_run_at >>= (fun run_at ->
+      Ok (Job.create name prog args run_at ())
+    ))))
+\end{verbatim}
+
+
+
+Here we simply and effectively deal with two types of errors
+Firstly a key being missing from our list
+\begin{verbatim}
+    let find k = match List.Assoc.find la k with
+      | None -> Error (Err.missing_key k)
+      | Some v -> Ok v
+\end{verbatim}
+Secondly a more complicated value which we have to parse;
+the parsing of which can fail
+\begin{verbatim}
+    let%bind run_at = (find "run_at" >>= parse_run_at) in
+\end{verbatim}
+The key point here is when we have an error we want to fail
+loudly and give as much information as possible about why we failed.
+Furthermore, we don't want to take care of that in this function
+we don't want to put that logic here
+Monads allow us to sequence this error handling
+and keep the necessary logic in a sensible re-usable place.
+
+Finally consider the relation between
+\texttt{(let\%bind,do)} and the Kleisli category of programs.
+Consider how convienent it is for programmers to have a category
+of programs where reliable error handling is built in by default.
+
+%%TODO
+\subsection{Monads for Imperative Programming}
+Imperative programming is undeniably popular,
+and much closer to how computers physically work than functional programming;
+There is a bridge to be crossed between functional and imperative programming
+
+monads have been concretely shown to be an effective method of replicating
+imperative style and retaining benefits of purity \cite{PeytonJones:1993}.
+These examples clearly illustrate how useful monads can be for structuring a program,
+however the importance and necessity of monads is that for pure functional languages
+to be actually useful we require effects. Monads give us means to achieve that.
+
+In this section we will prove the inverse,
+monads are good for imperative programming
+and imperative programmers have monad-like features
+
+
+
+"Moreover, effect handlers allow con- current programs to be written in direct-style retaining the simplicity of sequential code as opposed to callback-oriented style with either monadic concurrency libraries such as Lwt [8] and Async [5] for OCaml or explicit callbacks."
+\cite{dolaneffectively}
+
+"The use of monads to structure functional programs is de- scribed. Monads provide a convenient framework for simulating effects found in other languages, such as global state, exception handling, out- put, or non-determinism. Three case studies are looked at in detail: how monads ease the modification of a simple evaluator; how monads act as the basis of a datatype of arrays subject to in-place update; and how monads can be used to build parsers.
+"
+"Pure functional languages have this advantage: all flow of data is made explicit. And this disadvantage: sometimes it is painfully explicit."
+"It is with regard to modularity that explicit data flow becomes both a blessing and a curse. On the one hand, it is the ultimate in modularity. All data in and all data out are rendered manifest and accessible, providing a maximum of flexibility. On the other hand, it is the nadir of modularity. The essence of an algorithm can become buried under the plumbing required to carry data from its point of creation to its point of use"
+\cite{wadler1995monads}
+
+"
+%Do es the monadic style force one􏰄 in e􏰒ect􏰄 to write a functional facsimile of an
+%imp erative program, thereby losing any advantages of writing in a functional language?
+%the p ower of higher􏰆order functions and non􏰆strict semantics can b e used
+%programming easier􏰄 by de􏰐ning new action􏰆manipulating combinators􏰇
+%The p oint we are making is that it is easy for the programmer to de􏰐ne new 􏰜glue􏰝 to combine actions in just the way which is suitable for the program b eing written􏰇 It􏰚s a bit like b eing able to de􏰐ne your own control structures in an imp erative language􏰇
+"\cite{PeytonJones:1993}
+
+
+"The special characteristics and advantages of functional programming are often summed up more or less as follows. Functional programs contain no assignment statements, so variables, once given a value, never change. More generally, functional programs contain no side-effects at all. A function call can have no effect other than to compute its result. This eliminates a major source of bugs, and also makes the order of execution irrelevant - since no side-effect can change the value of an expression, it can be evaluated at any time. This relieves the programmer of the burden of prescribing the flow of control."
+"When writing a modular program to solve a problem, one first divides the problem into sub- problems, then solves the sub-problems and combines the solutions. The ways in which one can divide up the original problem depend directly on the ways in which one can glue solutions together. Therefore, to increase ones ability to modularise a problem conceptually, one must provide new kinds of glue in the programming language."
+\cite{hughes1989functional}
+
+In the Go programming language one will often see this idiom,
+one can easily see the relation to the result monad which we
+have demonstrated.
+We get this for free with monads!
+Go does not have exceptions,
+
+\begin{verbatim}
+    result, err := myFunction()
+    if err != nil {
+        return nil, err
+    }
+\end{verbatim}
+
+Consider our error handling example;
+in Go this might be much more verbose
+and perhaps painfully explicit
+Of course one would probably structure the program differently in Go;
+however the OCaml implementation is undeniably straightforward
+and error resistant, while providing useful error messages.
+
+\begin{verbatim}
+    name, err := findName(la)
+    if err != nil {
+        return nil, err
+    }
+    prog, err := findProg(la)
+    if err != nil {
+        return nil, err
+    }
+    etc...
+    job.Create(name, prog, args, run_at)
+\end{verbatim}
+
+\subsection{Monad Transformers}
+Now we must discuss how one composes monads;
+say
+
+Monad transformers add functionality of one monad to another.
+We often find that difficulty arises when trying to compose monads,
+say we have a stateful computation a
+\cite{king1993combining}

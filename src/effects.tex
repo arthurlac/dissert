@@ -1,0 +1,97 @@
+\section{What are effects?}
+Firstly, if we are going to assert effects are essential,
+we should define what an effect exactly is.
+
+"Haskell purity allows compiler to call only functions whose results are really required to calculate final value of high-level function (i.e., main) - this is called lazy evaluation. It's great thing for pure mathematical computations, but how about I/O actions? Function like:
+
+putStrLn "Press any key to begin formatting"
+can't return any meaningful result value, so how can we ensure that compiler will not omit or reorder its execution?"
+
+\begin{example}
+    We can give several categories !!!! of computational effects
+    which illustrate
+    \begin{itemize}
+        \item Input/Output
+        \item Mutable state
+        \item Exceptions
+        \item Non-Determinism and Probabilistic Non-Determinism
+        \item Continuations
+    \end{itemize}
+\end{example}
+
+Note that side effects $\subset$ effects,
+for example input/output and mutable states are side effects
+however non-determinism is not.
+\begin{definition}
+    An \textit{effect} is
+\end{definition}
+
+\begin{definition}
+    A \textit{side effect} is
+"a side effect if it modifies some state outside its scope or has an observable interaction with its calling functions or the outside world besides returning a value."CHANGEME
+\cite{hughes1989functional}
+\end{definition}
+
+Why do effects make life hard?
+Largely because effects mean we can not employ equational reasoning,
+this makes engineering larger programs more complicated
+A great deal of trouble can happen when something is implicit
+rather than explicit.
+
+We want to maximise the amount of erroneous programs the type-checker will not except
+Thus if untracked effects are a considerable source of errors then we should
+wish to track them as best as possible.
+
+"Java's checked exceptions are an example of an effect system: the effect kind is throws and the region is the type of the exception being thrown.
+"
+
+Type and effect systems
+\cite{nielson1999type}
+"an effect system labels each function with its possible effects, so a function type is now written %τ →σ τ′, indicating a function that may have effects delimited by σ."
+
+"Gifford and others proposed an effect typing discipline to delimit the scope of computational effects within a program, while Moggi and others proposed monads for much the same purpose. Here we marry effects to monads, uniting two previously separate lines of research. In particular, we show that the type, region, and effect system of Talpin and Jouvelot carries over directly to an analogous system for monads, including a type and effect reconstruction algorithm. The same technique should allow one to transpose any effect system into a corresponding monad system."
+"Effect systems are typically found in strict languages, such as FX [GJLS87] (a variant of Lisp), while monads are typically found in lazy languages, such as Haskell "
+"writing %Tσ τ for a computation that yields a value in τ and may have effects delimited by σ. Now we havethat(τ→σ τ′)†isτ†→Tστ′†."
+\cite{wadler2003marriage}
+
+\subsection{Referential transparency}
+
+In essence this means that if we wish to find the value of an expression which contains a sub-expression, the only thing we need to know about the sub-expression is its value. Any other features of the sub-expression, such as its internal structure, the number and nature of its components, the order in which they are evaluated or the colour of the ink in which they are written, are irrelevant to the value of the main expression.
+\cite{strachey2000fundamental}
+
+"
+Moreover, the assignment statement splits program- ming into two worlds. The first world comprises the right sides of assignment statements. This is an orderly world of expressions, a world that has useful algebraic proper- ties (except that those properties are often destroyed by side effects)."
+"
+So far we have discussed the gross size and inflexi- bility of von Neumann languages; another important defect is their lack of useful mathematical properties and the obstacles they present to reasoning about programs. Although a great amount of excellent work has been published on proving facts about programs, yon Neu- mann languages have almost no properties that are helpful in this direction and have many properties that are obstacles (e.g., side effects, aliasing)."
+\cite{backus2007can}
+
+\begin{definition}
+    An \textit{referential transparency} is
+\end{definition}
+WIKI REMOVE ME
+An expression is said to be referentially transparent if it can be replaced with its corresponding value without changing the program's behavior.[1] As a result, evaluating a referentially transparent function gives the same value for same arguments. Such functions are called pure functions. An expression that is not referentially transparent is called referentially opaque.
+\begin{definition}
+    An \textit{referential opacity} is
+\end{definition}
+
+What does it mean to be pure?
+\begin{definition}
+    \textit{Purity} means
+
+
+    In computer programming, a function may be considered a pure function if both of the following statements about the function hold:
+
+The function always evaluates the same result value given the same argument value(s). The function result value cannot depend on any hidden information or state that may change while program execution proceeds or between different executions of the program, nor can it depend on any external input from I/O devices (usually—see below).
+Evaluation of the result does not cause any semantically observable side effect or output, such as mutation of mutable objects or output to I/O devices (usually—see below).
+
+\end{definition}
+
+Relation to lambda calculus and $\beta$-equality
+In a pure language we have $\beta$-equality
+in an impure language 
+
+CONC WE NEED EFFECTS BUT THEY ARE TRICKY, SO VERY TRICKY
+We have to ask in what ways can we deal with effects?
+What tools do we have as a programmer at our disposal here????
+Following this we will present two ideas both originating from CT
+which give us tools for effectful programming
