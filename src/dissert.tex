@@ -27,6 +27,8 @@
     diagrams={>={Straight Barb[scale=0.8]}}
 }
 
+\newcommand\bind{\gg=}
+
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{1em}
 
@@ -92,7 +94,7 @@ can't return any meaningful result value, so how can we ensure that compiler wil
     \end{itemize}
 \end{example}
 
-Note that effects $\supset$ side effects,
+Note that side effects $\subset$ effects,
 for example input/output and mutable states are side effects
 however non-determinism is not.
 \begin{definition}
@@ -112,8 +114,13 @@ A great deal of trouble can happen when something is implicit
 rather than explicit.
 
 We want to maximise the amount of erroneous programs the type-checker will not except
+Thus if untracked effects are a considerable source of errors then we should
+wish to track them as best as possible.
 
-type and effect systems
+"Java's checked exceptions are an example of an effect system: the effect kind is throws and the region is the type of the exception being thrown.
+"
+
+Type and effect systems
 \cite{nielson1999type}
 "an effect system labels each function with its possible effects, so a function type is now written %τ →σ τ′, indicating a function that may have effects delimited by σ."
 
@@ -123,6 +130,16 @@ type and effect systems
 \cite{wadler2003marriage}
 
 \subsection{Referential transparency}
+
+In essence this means that if we wish to find the value of an expression which contains a sub-expression, the only thing we need to know about the sub-expression is its value. Any other features of the sub-expression, such as its internal structure, the number and nature of its components, the order in which they are evaluated or the colour of the ink in which they are written, are irrelevant to the value of the main expression.
+\cite{strachey2000fundamental}
+
+"
+Moreover, the assignment statement splits program- ming into two worlds. The first world comprises the right sides of assignment statements. This is an orderly world of expressions, a world that has useful algebraic proper- ties (except that those properties are often destroyed by side effects)."
+"
+So far we have discussed the gross size and inflexi- bility of von Neumann languages; another important defect is their lack of useful mathematical properties and the obstacles they present to reasoning about programs. Although a great amount of excellent work has been published on proving facts about programs, yon Neu- mann languages have almost no properties that are helpful in this direction and have many properties that are obstacles (e.g., side effects, aliasing)."
+\cite{backus2007can}
+
 \begin{definition}
     An \textit{referential transparency} is
 \end{definition}
@@ -135,6 +152,13 @@ An expression is said to be referentially transparent if it can be replaced with
 What does it mean to be pure?
 \begin{definition}
     \textit{Purity} means
+
+
+    In computer programming, a function may be considered a pure function if both of the following statements about the function hold:
+
+The function always evaluates the same result value given the same argument value(s). The function result value cannot depend on any hidden information or state that may change while program execution proceeds or between different executions of the program, nor can it depend on any external input from I/O devices (usually—see below).
+Evaluation of the result does not cause any semantically observable side effect or output, such as mutation of mutable objects or output to I/O devices (usually—see below).
+
 \end{definition}
 
 Relation to lambda calculus and $\beta$-equality
@@ -338,7 +362,7 @@ a $\lambda_c$-model over a category $C$ with finite products is a strong monad $
 together with a $T$-exponential for every pair $\langle A, B\rangle$ of objects in $C$
 \cite{moggi1989computational}.
 
-Here are two examples of the $\lambda_C$-calculus
+Here are two examples of the $\lambda_C$-calculus from
 \cite{moggi1989computational}\cite{moggi1991notions}.
 \vspace{5mm}
 
@@ -361,7 +385,7 @@ Here are two examples of the $\lambda_C$-calculus
     \begin{itemize}
         \item $T(-)$ is the covariant powerset functor,
             i.e.  $T(A)$ = $P(A)$ and $T(f)(X)$ is the image of X along f
-        \item $\eta_A$ is the singleton map $a \rightarrow  \{a\}$
+        \item $\eta_A$ is the singleton map $a \mapsto  \{a\}$
         \item $\mu_A(X)$ is the big union $\bigcup X$
     \end{itemize}
 \end{example}
@@ -471,7 +495,7 @@ To be a correct monad implementation it must be true that:
 
 %TODO
 Contrast these monad laws with the diagrams
-\begin{center}
+\begin{equation}
     \begin{tikzcd}[sep=large]
         T \rar{\eta_T} \drar[swap]{1_{C}} & T^2 \dar{\mu} & \lar[swap]{T\eta} \dlar{1_{C}} T \\
                                            & T            &
@@ -481,7 +505,7 @@ Contrast these monad laws with the diagrams
         T^3 \rar{T\mu} \dar[swap]{\mu_T} & T^2 \dar{\mu} \\
         T^2 \rar[swap]{\mu}                    & T
     \end{tikzcd}
-\end{center}
+\end{equation}
 
 For programmers the essence of a monad is \texttt{fmap}
 this is because
@@ -489,21 +513,20 @@ however one often sees \texttt{bind} where
 \begin{equation}
     bind :: M x \rightarrow (x \rightarrow M y) \rightarrow M y
 \end{equation}
-It is convention to use bind as the infix operator "\texttt{>>=}".
+It is convention to use bind as the infix operator "$\bind$".
 \begin{equation}
-    (>>=) :: (Monad m) => m a -> (a -> m b) -> m b\\
-    xs >>= f = join (fmap f xs)
+    mx \bind f = join\ (fmap\ f\ mx)
 \end{equation}
 Bind is a hugely useful tool for programmers;
 because often we want to sequence
 
 Consider that join can be expressed in terms of \texttt{bind} with \texttt{id}
 \begin{equation}
-    join m = m >>= id
+    join\ m = m \bind id
 \end{equation}
 and furthermore so can \texttt{fmap} with \texttt{return}.
 \begin{equation}
-    fmap f x = (return x) >>= f
+    fmap\ f\ x = (return\ x) \bind f
 \end{equation}
 
 Because \texttt{bind} is often found with \texttt{(fmap,join,return)}
@@ -511,9 +534,9 @@ We can reformulate our axioms in terms of bind
 indeed the axioms are often reformulated this way because it is simpler.
 \begin{equation}
   \begin{split}
-      return\ x >>= f     &\equiv f x \\
-             m >>= return &\equiv m   \\
-      (m >>= f) >>= g     &\equiv m >>= (\lambda x.(fx >>= g))
+      return\ x \bind f     &\equiv f x \\
+             m \bind return &\equiv m   \\
+      (m \bind f) \bind g     &\equiv m \bind (\lambda x.(fx \bind g))
   \end{split}
 \end{equation}
 
@@ -725,6 +748,18 @@ This is largely just a programmer convienence,
 for comparison Haskell offers \textit{do notation} for the same end.
 
 \begin{verbatim}
+do { x } = x
+ 
+do { x ; <stmts> }
+  = x >> do { <stmts> }
+ 
+do { v <- x ; <stmts> }
+  = x >>= \v -> do { <stmts> }
+ 
+do { let <decls> ; <stmts> }
+  = let <decls> in do { <stmts> }
+\end{verbatim}
+\begin{verbatim}
   let list_assoc_to_job la =
     let find k = match List.Assoc.find la k with
       | None -> Error (Err.missing_key k)
@@ -833,6 +868,9 @@ Go does not have exceptions,
 Consider our error handling example;
 in Go this might be much more verbose
 and perhaps painfully explicit
+Of course one would probably structure the program differently in Go;
+however the OCaml implementation is undeniably straightforward
+and error resistant, while providing useful error messages.
 
 \begin{verbatim}
     name, err := findName(la)
@@ -844,6 +882,7 @@ and perhaps painfully explicit
         return nil, err
     }
     etc...
+    job.Create(name, prog, args, run_at)
 \end{verbatim}
 
 \subsection{Monad Transformers}
@@ -858,6 +897,40 @@ say we have a stateful computation a
 
 \pagebreak
 \section{Algebraic Effects}
+Following from our discussion of Lawvere theories
+
+the essence is we have operations which generate effects,
+which can be dealt with algebraically %(What does algebraic mean
+and further which allows generic effects
+
+
+
+
+"A sloppy but intuitive way to describe this is "algebraic effects operate algebraically, which is to say, subject to purely local rewrites, or, alternately, in such a way that the interpretation of an expression can be given as an operator on the interpretation of its subexpressions." Continuations are nonlocal, and can cause expressions to need global knowledge for the purposes of interpretation."
+cite internet
+Another, even more handwavy way to think of this, is that handlers of algebraic effects are given via continuations. So now, analogously to what happens when one tries to combine continuations with exceptions in scheme, we run into the age-old conflict -- two mechanisms that both affect global control flow exist at once, and have no particularly "good" way to not step on one another's toes.
+
+
+
+Currently algebraic effects are a popular area of research,
+
+\textbf{Some Algebraic Effect Implementations}
+\begin{itemize}
+    \item Eff: Matija Pretnar and Andrej Bauer, 2011-now.
+    \item Links : Daniel Hillerström and Sam Lindley, 2015.
+    \item Frank: Conor McBride, 2007, 2012.
+    \item OCaml+effects: Stephen Dolan, Leo White, KC Sivaramakrishnan, 2016.
+\end{itemize}
+
+\subsection{Overview}
+Algebraic effects, like monads, can be used to model effects in a pure language.
+Where Moggi \cite{moggi1989computational} proposed monads to give categorical semantics to computational effects;
+Power and Plotkin \cite{Plotkin:2002dw} propose "computational effects as being realised by
+families of operations, with a monad being generated by their equational theory".
+This means we can treat effects algebraically,
+to actually interact with them as programming constructs algebraic effects are paired with
+handlers \cite{plotkin2009handlers}.
+Where algebraic operations construct effects handlers are the dual, they deconstruct effects.
 
 \begin{example}
     Consider the examples of effects we gave in cite
@@ -870,37 +943,18 @@ say we have a stateful computation a
         \item Continuations - cont
     \end{itemize}
 \end{example}
-Algebraic effects, like monads, can be used to model effects in a pure language.
-Where Moggi \cite{moggi1989computational} proposed monads to give categorical semantics to computational effects;
-Power and Plotkin \cite{Plotkin:2002dw} propose "computational effects as being realised by
-families of operations, with a monad being generated by their equational theory".
-This means we can treat effects algebraically,
-to actually interact with them as programming constructs algebraic effects are paired with
-handlers \cite{plotkin2009handlers}.
-Where algebraic operations construct effects handlers are the dual, they deconstruct effects.
 
-Theoretical background is, regrettably, beyond the scope of this document.
 \begin{definition}
     An operation is !
+
+    \begin{verbatim}
+        effect IO =
+          | Print : string -> unit
+          | Read : string
+
+        perform (Print "Hello world");
+    \end{verbatim}
 \end{definition}
-
-the essence is we have operations which generate effects,
-which can be dealt with algebraically %(What does algebraic mean
-and further which allows generic effects
-"Of the various operations, handle is of a different computational character and, although natural, it is not algebraic. Andrzej Filinski (personal communication) describes handle as a deconstructor, whereas the other operations are constructors (of effects). In this paper, we make the notion of constructor precise by identifying it with the notion of algebraic operation."
-
-\begin{itemize}
-    \item Eff: Matija Pretnar and Andrej Bauer, 2011-now.
-    \item Links : Daniel Hillerström and Sam Lindley, 2015.
-    \item Frank: Conor McBride, 2007, 2012.
-    \item OCaml+effects: Stephen Dolan, Leo White, KC Sivaramakrishnan, 2016.
-\end{itemize}
-
-Currently algebraic effects are a popular area of research,
-it has been shown that they can "concisely describe many complex control-flow constructs" \cite{leijen2017type}.
-They "provide a modular abstraction for expressing effectful computation"\cite{dolan2015effective},
-in this section I will examine to what extent they can be equivalently used to monads and wether
-they provide the same benefits.
 
 \begin{verbatim}
 effect choice =
@@ -926,11 +980,23 @@ let incr_twice () : int =
 \end{verbatim}
 %http://gallium.inria.fr/~scherer/doc/effect-handlers-talk.html#/sec-effect-handlers--examples
 
-\subsection{Nondet}
-%Example 3. Nondeterminism Let C be the category of ω-cpo’s. Then the cat- egoryofalgebrasfortheconvexpower-domain[5,18,1]isthecategoryofsemi- latticesinC(i.e.,structureswithanassociative,commutative,idempotentbi- naryoperation),equippedwithaleastelement⊥.Similarfactsaretrueofthe upper and lower power-domains, except that each requires an additional equa- tional axiom in the setting of [10].
+\subsection{Handlers}
 \cite{Plotkin:2002dw}
 
 \subsection{Draft}
+
+"Of the various operations, handle is of a different computational character and, although natural, it is not algebraic
+Andrzej Filinski (personal communication) describes handle as a deconstructor, whereas the other operations are constructors (of effects). In this paper, we make the notion of constructor precise by identifying it with the notion of algebraic operation."
+
+it has been shown that they can "concisely describe many complex control-flow constructs" \cite{leijen2017type}.
+They "provide a modular abstraction for expressing effectful computation"\cite{dolan2015effective},
+in this section I will examine to what extent they can be equivalently used to monads and wether
+they provide the same benefits.
+
+
+
+
+
 %"There are computationally natural families of operations associated with sev- eral of the above monads: one has ‘raise’ operations for exceptions; one has ‘read’ and ‘write’ operations associated with interactive input/output; one has a nonde- terministic binary ‘choice’ operation when modelling nondeterminism; one has a ‘random choice’ operation for probabilistic nondeterminism; and one has ‘lookup’ and ‘update’ operations when modelling global state. An analysis of several of thesefamiliesofoperationsappearsin[20]:theyareregardedasalgebraicfami- lies of operations associated with an already given monad, and are characterised intermsofgenericeffects:e.g.,togiveagenericeffecte:n−→Tmisequivalent togivingmn-aryalgebraicfamiliesofoperations,wheremandnneednotbe finite(misthem-foldcoproductof1inC).Cruciallywhenamonadisgiven byalgebraicoperationsandequationsinthesenseof[10],thealgebraicfamilies of operations associated with it are given by the derived operations."
 \cite{Plotkin:2002dw}
 
@@ -1035,10 +1101,6 @@ Then we have
 
 Text of Appendix A is Here
 
-\section{\\Title of Appendix B}
-% the \\ insures the section title is centered below the phrase: Appendix B
-
-Text of Appendix B is Here
 \pagebreak
 \bibliographystyle{unsrt}
 \bibliography{dissert}
