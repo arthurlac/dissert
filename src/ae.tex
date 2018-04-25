@@ -117,6 +117,29 @@ Andrzej Filinski (personal communication) describes handle as a deconstructor, w
 
 
 
+"presentanalgebraictreatmentofexceptionhandlersand, more generally, introduce handlers for other computational effects representable by an algebraic theory"
+"Although the algebraic approach has given ways of constructing, combin- ing [10], and reasoning [22] about effects, it has not yet accounted for their handling. The difficulty is that exception handlers, a well-known programming concept, fail to be algebraic operations [20]. Conceptually, algebraic operations and effect handlers are dual: the former could be called effect constructors as they give rise to the effects; the latter could be called effect deconstructors as they depend on the effects already created. Filinski’s reflection and reification operations provide general effect constructors and deconstructors in the context of layered monads [5]."
+"The central new semantic idea is that deconstructing a computation amounts to applying to it a unique homomorphism guaranteed by universality. The domain of this homomorphism is a free model of the algebraic theory of the effects at hand; its range is a programmer-defined model of the algebraic theory; and it extends a programmer- defined map on values."
+"exceptions provide the simplest example of algebraic effects"
+Taking a set of exceptions E, the computations that return values from a set X are modelled by elements γ of the monad T X =def X + E with unit ηX = inlX : X → X + E. Algebraically, one may take a nullary operation, i.e., a constant, raisee : 0 for each e ∈ E and no equations, and then F X has carrier TX with raisee interpreted as inr(e).
+Fixing X, an exception handler γhandle{e􏰀→γe}e∈E takes a computation γ ∈ X + E and intercepts raised exceptions e ∈ E, carrying out predefined computations γe ∈ X + E instead (if one chooses not to handle a particular exception e one takes γe = raisee). So we have the two equations:
+ηX(x)handle{e􏰀→γe}e∈E =inlX(x),
+raisee handle {e 􏰀→ γe}e∈E = γe .
+From an algebraic point of view, the γe provide a model X + E for the theory of exceptions. This model has carrier X + E and, for each e, raisee is interpreted by γe. We then see from the above two equations that
+θ(γ)=def γhandle{e􏰀→γe}e∈E
+is the unique homomorphism θ : X + E → X + E extending inlX : X → X + E along ηX (we confuse the free model on X with its carrier).
+\cite{Plotkin:2009dr}
+builds on
+\cite{benton2001exceptional}
+
+
+"Plotkin and Pretnar’s handlers for algebraic effects occupy a sweet spot in the design space of abstractions for effectful computation. By separating effect signatures from their implementation, alge- braic effects provide a high degree of modularity, allowing pro- grammers to express effectful programs independently of the con- crete interpretation of their effects. A handler is an interpretation of the effects of an algebraic computation. The handler abstraction adapts well to multiple settings: pure or impure, strict or lazy, static types or dynamic types."
+"In general an abstract operation declaration has the form
+[operation | ∀u1 ... ul.Op e1 ... em :: A1 → ... → An → A |]
+where Op is the name of the operation, u1 , ..., ul are universal type variables, e1,...,em are existential type variables, A1,...,An are parameter types, and A is the return type. "
+
+\cite{kammar2013handlers}
+
 
 
 and there is a natural separation between
@@ -229,6 +252,8 @@ How to compose algebraic effects?
 lots of ppl say the monads when composed make effects coarse grained
 and this is ugly
 
+OCaml is impure but has monads, and soon effects, wen you need them?
+is this the most 'pratical' approach?
 
 algebraic effects are more scalable solution for engineering programs!
 \begin{verbatim}
@@ -249,4 +274,8 @@ let incr_twice () : int =
   perform (Print "incremented twice");
   perform Get
 \end{verbatim}
+
+"Monad transformers [25] provide a form of modular instantia- tion for abstract monadic computations. For instance, state can be handled in the presence of other effects by incorporating a state monad transformer within a monad transformer stack.
+A fundamental problem with monad transformer stacks is that once a particular abstract effect is instantiated, the order of effects in the stack becomes concrete, and it becomes necessary to explic- itly lift operations through the stack. Taming the monad transformer stack is an active research area [16, 17, 38, 42]."
+\cite{kammar2013handlers}
 %http://gallium.inria.fr/~scherer/doc/effect-handlers-talk.html#/sec-effect-handlers--examples

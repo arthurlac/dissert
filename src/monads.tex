@@ -134,6 +134,10 @@ class Monad m => MonadState s m | m -> s where
 join :: (State s (State s a)) -> (State s a)
 join xss = State (\s -> uncurry runState (runState xss s))
 
+newtype State s a = State {runState :: s → (a, s)} instance Monad (State s) where
+return x = State (λs → (x,s))
+m>=f =State(λs→let(x,s′)=runStatemsin
+runState (f x) s′)
 --------------------------------------------------------------------
 type GameValue = Int
 type GameState = (Bool, Int)
