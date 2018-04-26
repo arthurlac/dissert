@@ -1,7 +1,6 @@
 \section{Algebraic Effects}
-Following from our discussion of Lawvere theories
-in section three,
-we will now explore 
+Following from our discussion of Lawvere theories,
+we will now explore their programming language progeny \textit{algebraic effects}.
 The essence is
 we have operations which generate effects,
 which can be dealt with algebraically
@@ -32,7 +31,8 @@ and may well enter the mainstream in the next decade;
 potentially because imperative programmers
 will find them more intuitive equivalent monads.
 
-AE represent the cutting edge
+Algebraic effects represent the cutting edge of effect management
+in programming languages as such we have seen
 
 \textbf{Some Algebraic Effect Implementations}
 \begin{itemize}
@@ -55,7 +55,6 @@ they can be freely composed,
 \cite{leijen2017type}
 They "provide a modular abstraction for expressing effectful computation"\cite{dolan2015effective},
 
-
 \begin{example}
     Consider the examples of effects we gave at the beginning of this document.
     Each of these effects has a natural operation which generates the effect.
@@ -69,7 +68,10 @@ They "provide a modular abstraction for expressing effectful computation"\cite{d
     \end{itemize}
 \end{example}
 
-NOT CONTINUATIONS
+Notice that we have not mentioned continuations here,
+this is because
+"continuations are computationally of a different character to other computational effects"
+\cite{Plotkin:2002dw}.
 
 "There are computationally natural families of operations associated with several of the above monads:
 An analysis of several of thesefamiliesofoperationsappearsin[20]:
@@ -82,7 +84,7 @@ thealgebraicfamilies of operations associated with it are given by the derived o
 \cite{Plotkin:2002dw}
 
 \begin{definition}
-    an operation is !
+    An \textit{operation} is !
 \end{definition}
 
 \begin{definition}
@@ -106,28 +108,31 @@ thealgebraicfamilies of operations associated with it are given by the derived o
 \end{example}
 
 \subsection{Handlers}
+Thus far we have only
+where operations are constructors of effects
+we also need a dual,
+\textit{handlers} which can be seen as deconstructors of effects
+\cite{}.
+Handlers were introduced by Plotkin and Pretner\cite{Plotkin:2009dr}
+builds on
+\cite{benton2001exceptional}
+.
+
 "Of the various operations, handle is of a different computational character and, although natural, it is not algebraic
 Andrzej Filinski (personal communication) describes handle as a deconstructor, whereas the other operations are constructors (of effects). In this paper, we make the notion of constructor precise by identifying it with the notion of algebraic operation."
-
-
-
-
-
 \cite{Plotkin:2002dw}
-
-
 
 "presentanalgebraictreatmentofexceptionhandlersand, more generally, introduce handlers for other computational effects representable by an algebraic theory"
 "Although the algebraic approach has given ways of constructing, combin- ing [10], and reasoning [22] about effects, it has not yet accounted for their handling. The difficulty is that exception handlers, a well-known programming concept, fail to be algebraic operations [20]. Conceptually, algebraic operations and effect handlers are dual: the former could be called effect constructors as they give rise to the effects; the latter could be called effect deconstructors as they depend on the effects already created. Filinski’s reflection and reification operations provide general effect constructors and deconstructors in the context of layered monads [5]."
 "The central new semantic idea is that deconstructing a computation amounts to applying to it a unique homomorphism guaranteed by universality. The domain of this homomorphism is a free model of the algebraic theory of the effects at hand; its range is a programmer-defined model of the algebraic theory; and it extends a programmer- defined map on values."
 "exceptions provide the simplest example of algebraic effects"
-Taking a set of exceptions E, the computations that return values from a set X are modelled by elements γ of the monad T X =def X + E with unit ηX = inlX : X → X + E. Algebraically, one may take a nullary operation, i.e., a constant, raisee : 0 for each e ∈ E and no equations, and then F X has carrier TX with raisee interpreted as inr(e).
-Fixing X, an exception handler γhandle{e􏰀→γe}e∈E takes a computation γ ∈ X + E and intercepts raised exceptions e ∈ E, carrying out predefined computations γe ∈ X + E instead (if one chooses not to handle a particular exception e one takes γe = raisee). So we have the two equations:
-ηX(x)handle{e􏰀→γe}e∈E =inlX(x),
-raisee handle {e 􏰀→ γe}e∈E = γe .
-From an algebraic point of view, the γe provide a model X + E for the theory of exceptions. This model has carrier X + E and, for each e, raisee is interpreted by γe. We then see from the above two equations that
-θ(γ)=def γhandle{e􏰀→γe}e∈E
-is the unique homomorphism θ : X + E → X + E extending inlX : X → X + E along ηX (we confuse the free model on X with its carrier).
+%Taking a set of exceptions E, the computations that return values from a set X are modelled by elements γ of the monad T X =def X + E with unit ηX = inlX : X → X + E. Algebraically, one may take a nullary operation, i.e., a constant, raisee : 0 for each e ∈ E and no equations, and then F X has carrier TX with raisee interpreted as inr(e).
+%Fixing X, an exception handler γhandle{e􏰀→γe}e∈E takes a computation γ ∈ X + E and intercepts raised exceptions e ∈ E, carrying out predefined computations γe ∈ X + E instead (if one chooses not to handle a particular exception e one takes γe = raisee). So we have the two equations:
+%ηX(x)handle{e􏰀→γe}e∈E =inlX(x),
+%raisee handle {e 􏰀→ γe}e∈E = γe .
+%From an algebraic point of view, the γe provide a model X + E for the theory of exceptions. This model has carrier X + E and, for each e, raisee is interpreted by γe. We then see from the above two equations that
+%θ(γ)=def γhandle{e􏰀→γe}e∈E
+%is the unique homomorphism θ : X + E → X + E extending inlX : X → X + E along ηX (we confuse the free model on X with its carrier).
 \cite{Plotkin:2009dr}
 builds on
 \cite{benton2001exceptional}
@@ -135,12 +140,12 @@ builds on
 
 "Plotkin and Pretnar’s handlers for algebraic effects occupy a sweet spot in the design space of abstractions for effectful computation. By separating effect signatures from their implementation, alge- braic effects provide a high degree of modularity, allowing pro- grammers to express effectful programs independently of the con- crete interpretation of their effects. A handler is an interpretation of the effects of an algebraic computation. The handler abstraction adapts well to multiple settings: pure or impure, strict or lazy, static types or dynamic types."
 "In general an abstract operation declaration has the form
-[operation | ∀u1 ... ul.Op e1 ... em :: A1 → ... → An → A |]
-where Op is the name of the operation, u1 , ..., ul are universal type variables, e1,...,em are existential type variables, A1,...,An are parameter types, and A is the return type. "
-
+%[operation | ∀u1 ... ul.Op e1 ... em :: A1 → ... → An → A |]
+%where Op is the name of the operation, u1 , ..., ul are universal type variables, e1,...,em are existential type variables, A1,...,An are parameter types, and A is the return type. "
 \cite{kammar2013handlers}
 
-
+A key benefit of handlers, and hence of algebraic effects,
+is that
 
 and there is a natural separation between
 their interface (as a set of operations)
@@ -162,14 +167,18 @@ Algebraic effects are computational effects that can be represented by an equati
 Continuations are not algebraic effects.
 
 Algebraic effects allow computational effects to be representable by
-effects that allow a representation by opera- tions and equations
+effects that allow a representation by operations and equations
 
-\subsection{Rebuilding our trie with algebraic effects}
+\subsection{Structuring Programs with Algebraic Effects}
+As we demonstrated monads are rather useful for structuring programs,
+allowing us to only consider the happy path while remaining assured
+edge cases are handled;
+it is natural to ask if programming with algebraic effects
+has the same properties?
+
+Recall our implementation of a trie with monads,
+we will now explore whether an algebraic effect implementation
 \begin{verbatim}
-
-
-
-
   let get t key =
     let rec search chars t =
         match chars with
@@ -177,12 +186,9 @@ effects that allow a representation by opera- tions and equations
         | c :: cs -> bind_search (find_child t c) cs
     and bind_search ot chars = ot >>= search chars
     in search key t
-
-
-
 \end{verbatim}
 
-
+We can also recall the implementation of the state monad
 
 \begin{verbatim}
 class Monad m => MonadState s m | m -> s where
@@ -205,7 +211,6 @@ class Monad m => MonadState s m | m -> s where
 join :: (State s (State s a)) -> (State s a)
 join xss = State (\s -> uncurry runState (runState xss s))
 
---------------------------------------------------------------------
 type GameValue = Int
 type GameState = (Bool, Int)
 
@@ -227,13 +232,6 @@ startState = (False, 0)
 
 main = print $ evalState (playGame "abcaaacbbcabbab") startState
 \end{verbatim}
-
-\subsection{Structuring Programs with Algebraic Effects}
-As we demonstrated monads are rather useful for structuring programs,
-allowing us to only consider the happy path while remaining assured
-edge cases are handled;
-it is natural to ask if programming with algebraic effects
-has the same properties?
 
 \begin{example}
 \end{example}
@@ -279,3 +277,12 @@ let incr_twice () : int =
 A fundamental problem with monad transformer stacks is that once a particular abstract effect is instantiated, the order of effects in the stack becomes concrete, and it becomes necessary to explic- itly lift operations through the stack. Taming the monad transformer stack is an active research area [16, 17, 38, 42]."
 \cite{kammar2013handlers}
 %http://gallium.inria.fr/~scherer/doc/effect-handlers-talk.html#/sec-effect-handlers--examples
+
+A potential advantage of algebraic effects over monads is that
+the "
+notion of countable enriched Lawvere theory
+provides us with a natural way to describe
+how computational effects may be combined.
+"
+\cite{plotkin2004computational}.
+I.e. algebraic effects compose more naturally.

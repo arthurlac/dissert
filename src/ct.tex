@@ -1,40 +1,44 @@
 \section{Categorical Views of Effects}
 
 \subsection{Overview}
-In this section we will explore the theoretical underpinnings
-of monads and algebraic effects.
-In the 1960s category theorists constructed monads
-Category theorists invented monads in the 1960s to concisely of universal algebra
+In this section we will explore the theoretical underpinnings of effects,
+the two key theoretical concepts are monads and Lawvere theories.
+For a prima facie understanding of we can say that
+they share a mathematical relation in understanding and expressing aspects of universal algebra.
+Where abstract algebra has specific algebraic structures, such as groups and rings,
+universal algebra examines these structures in a general sense.
+Not only do they share a history, finitary monads and Lawvere theories
+"describe equivalent categorical encodings of universal algebra"\cite{riehl}.
+%TODO
+These ideas, while fascinating and perplexing,
+are not central to this document.
+% and is added for perspective.
+% They have been discussed to enrich the perspectives discussed
 
-the study of algebraic theories and their models or algebras. 
+Moggi in 1989 \cite{moggi1989computational}
+first described the relation between monads and computational effects,
+introducing the $\lambda_C$-calculus.
+Serendipitously the Haskell programming language\cite{hudak1992report}
+was being formulated in this same period of time.
+As both a pure and lazy language
+it could not have effects in the manner programmers were accustomed to thus far;
+Moggi's $\lambda_C$-calculus was brought forth by Wadler\cite{wadler1990}
+as an elegant solution to this problem.
 
-\cite{wadler1990comprehending}
-\cite{hyland2007category}
-
-
-From monads and Lawvere theories we have
-the $\lambda_C$-calculus and algebraic effects.
-
-Briefly,
-
-From Moggi’s assignment to each set X of the set TX of values associated with a computational effect,
-one has passed to the study of the operations associated with the computational effect
-\cite{hyland2007category}
-
-A key understanding is that operations generate monads
-notions of computation determine monads
-\cite{plotkin2001adequacy}
-
-Plotkin and Power verified that and, later joined by Hyland,
-saw that what were then regarded as computational effects could,
-with one exception, fruitfully be seen as an instance and a development of universal algebra:
-interactive input/output was soon recognised as an example involving no equations;
-it was seen how to incorporate local state naturally; and the various ways of combining computational effects proved to be simple instances of combining Lawvere theories.
-\cite{hyland2007category}
-
+Plotkin and Power \cite{Plotkin:2001jr}
+introduced Lawvere theories to the discussion of effects
+in the early 2000s,
+contributing that monads were not effects themselves but rather were determined by effects;
+effects arising from operations.
 
 \subsection{Categories}
-First we must introduce the concept of \textit{categories},
+As one can guess from the name \textit{category theory},
+categories are at the heart of the subject.
+From this definition we will eventually arrive at monads.
+A computer scientist can begin conceptually
+understanding objects in a category
+as an analogy to types
+and morphisms as functions.
 
 \begin{definition}
     A \textit{category} $C$ consists of
@@ -68,6 +72,9 @@ the \textit{codomain}.\\
 \end{example}
 
 \subsection{Functors}
+Functors are the next step in our journey,
+and we can consider them a morphism between categories.\\
+
 \begin{definition}
     A \textit{functor} $U : C \rightarrow D$ consists of
     \begin{itemize}
@@ -90,6 +97,9 @@ the \textit{codomain}.\\
 \end{definition}
 
 \subsection{Natural transformations}
+Just as we considered functors a morphism between categories,
+we can in turn consider a natural transformation a morphism of functors.\\
+
 \begin{definition}
     Given categories $C$ and $D$,
     with functors $U, V : C \rightarrow D$
@@ -105,13 +115,14 @@ the \textit{codomain}.\\
             UY \rar{\alpha_Y}                & VY
         \end{tikzcd}
     \end{center}
-    A natural transformation can be considered a morphism of functors.
 \end{definition}
 
 \subsection{Monads}
-"Monads are among the most pervasive structures in category theory
-and its applications: for example, they are central to the category-theoretic account of universal algebra"
-\cite{mac2013categories}
+Building upon our previous definitions we can define a monad.
+Monads are a ubiquitous structure in category theory;
+being central to the
+"category-theoretic account of universal algebra"\cite{mac2013categories}.\\
+
 \begin{definition}
     A \textit{monad} is defined as the triple
     \begin{itemize}
@@ -132,8 +143,6 @@ and its applications: for example, they are central to the category-theoretic ac
         \end{tikzcd}
     \end{center}
 \end{definition}
-%TODO
-%which satisfies also an extra equalizing requirement: ηA: A → T A is an equalizer of ηTA and T(ηA), i.e. for any f:B → TA s.t. f;ηTA = f;T(ηA) there exists a unique m:B → A s.t. f = m;ηA3.
 
 \subsection{Kleisli Category}
 \begin{definition}
@@ -191,8 +200,8 @@ In this model "a program denotes a morphism from $A$
 (the object of computations of type B)"
 for example
 "partial computations (of type $B$) is the lifting $B + \{\bot\}$".
-Another example would be the type \texttt{IO Int}
-meaning interactive input/output computations of integers.
+A concrete example would be the type \texttt{IO Int}
+meaning interactive input/output computations returning integers.
 Whereas the simply typed lambda calculus is modeled by a cartesian closed category $C$;
 a $\lambda_c$-model over a category $C$ with finite products is a strong monad $(T,\eta,\mu,t)$
 together with a $T$-exponential for every pair $\langle A, B\rangle$ of objects in $C$
@@ -216,7 +225,7 @@ Here are two examples of the $\lambda_C$-calculus from
     \end{itemize}
 \vspace{5mm}
 
-\begin{example}\label{lc2}
+\begin{example}
     Non-deterministic computations:
     \begin{itemize}
         \item $T(-)$ is the covariant powerset functor,
@@ -234,10 +243,11 @@ The semantics of algebraic effects have a categorical basis as
 whenever one has a functor into a category with finite products
 and one studies the natural transformations between finite products of the functor".
 \cite{hyland2007category}
-A more in-depth mathematical background of Lawvere theories is, regrettably,
-beyond the scope of this document.
+A more in-depth mathematical background of Lawvere theories is,
+regrettably, beyond the scope of this document.
 
-The essential semantic difference between monads and algebraic effects is that
+Returning to the issue of effects,
+the essential difference between monads and algebraic effects is that
 where monads have a constructed object $TX$,
 i.e. the computations of the type $X$,
 algebraic effects have operations from which effects arise;
@@ -246,50 +256,38 @@ Consider the monad $IO Int$ which is the object of computations
 of the type $Int$;
 from an algebraic effect perspective
 one has the operation \texttt{print} which generates the effect
-
-An example of the Lawvere Theory $L_{I/O}$ for input/output is \textit{generated} by the operations
+An example of the Lawvere Theory $L_{I/O}$ for input/output
+is \textit{generated} by the operations
 \begin{equation}
-read : I \rightarrow 1 \quad\textrm{and}\quad write : 1 \rightarrow O
+    read : I \rightarrow 1 \quad\textrm{and}\quad write : 1 \rightarrow O
 \end{equation}
 where $I$ is a countable set of inputs and $O$ of outputs.
-
 \cite{plotkin2001adequacy}
-interactive input/output is more directly modelled
-by the Lawvere theory $L_{I/O}$ than by the corresponding monad
-\begin{equation}
-TX = \mu Y.(O \times Y + Y^I + X)
-\end{equation}
 
-An enriched Lawvere theory is generated by operations subject to equations.
-Operations appear directly in describing programming languages,
-but equations do not.
+We must also state that
+a Lawvere theory is generated by operations subject to equations.
+
+Whilst we have covered operations we have not covered
+equations
+
+whilst
+operations appear directly in describing programming languages
+equations do not.
 One of the equations for side-effects is
 \begin{equation}
-    updateloc,v (updateloc,v\prime (x)) = updateloc,v\prime (x)
+    updateloc,\ v (updateloc,v\prime (x)) = updateloc,v\prime (x)
 \end{equation}
 and the corresponding program assertion is
 \begin{equation}
-(l := x;let y be !l in M) = (l := x;M[x/y])
+    (l := x;\ let\ y\ be\ !l\ in\ M) = (l\ := x;\ M[x/y])
 \end{equation}
 This example is from \cite{plotkin2001adequacy}.
 
-A potential advantage of algebraic effects over monads is that
-the "
-notion of countable enriched Lawvere theory
-provides us with a natural way to describe
-how computational effects may be combined.
-"
-\cite{plotkin2004computational}.
-I.e. algebraic effects compose more naturally.
-
-
-A further advantage may be that
 "a class of theories that can be viewed as categories with a monad,
 so that
 any category with a monad is, up to equivalence (of categories with a monad), one of such theories.
 Such a reformulation in terms of theories is more suitable for formal manipulation and more appealing to those unfamiliar with Category Theory."
 \cite{moggi1991notions}
-
 
 The Lawvere theory LE for exceptions is the free Lawvere theory generated by E operations $raise : 0 \rightarrow  1$,
 where E is a set of exceptions.

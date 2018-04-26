@@ -41,11 +41,8 @@ KEY IDEAS:
 Monads and Computation\\
 Notions of Computation Determine Monads\\
 Algebraic Effects\\
-Rewriting our examples\\
 Purely Functional Data structures\\
 Why Functional Programming Matters\\
-Conclusion: category theory times functional programming matters\\
-ideally be a piece of proposing
 
 Effects are tricky, and essential!
 Programmers have long sought to make them more predictable;
@@ -74,6 +71,7 @@ Explain where monad-like patterns arise in imperative programming and how monads
 THE KEY POINT IS MONADS ARE GREAT FOR STRUCTURING PROGRAMS TO BE understandable/reliable/correct
 
 Finally I will present an abridged version which forgoes everything except the essentials
+which presumes less familiarity with functional language conventions
 with the goal of introducing and advocating for the concepts
 the target audience being programmers
 As such the success can be judged by how well it explains the use and benefits of both monads and algebraic effects.
@@ -102,13 +100,18 @@ as a generalisation of mathematics being a powerful tool to understand the world
 
 \pagebreak
 \section{Conclusion}
+it is fundementally unarguably more difficult to reason about code with side effects
+monads and algebraic effects help make this easier
 
 \pagebreak
 \appendix
-\section{\\Title of Appendix A}
+\section{\\A Monadic Trie}
+\include{trie}
 % the \\ insures the section title is centered below the phrase: AppendixA
 
 Text of Appendix A is Here
+
+\section{\\An Algebraic Effect Trie}
 
 \pagebreak
 \bibliographystyle{unsrt}
