@@ -61,6 +61,7 @@ It is convention to use bind as the infix operator "$\bind$".
 \end{equation}
 Bind is a hugely useful tool for programmers;
 because often we want to sequence
+Can we consider bind as a morphism between two objects in the Kleisli Category
 
 Consider that join can be expressed in terms of \texttt{bind} with \texttt{id}
 \begin{equation}
@@ -138,7 +139,10 @@ newtype State s a = State {runState :: s → (a, s)} instance Monad (State s) wh
 return x = State (λs → (x,s))
 m>=f =State(λs→let(x,s′)=runStatemsin
 runState (f x) s′)
---------------------------------------------------------------------
+
+
+
+
 type GameValue = Int
 type GameState = (Bool, Int)
 
@@ -160,10 +164,10 @@ startState = (False, 0)
 
 main = print $ evalState (playGame "abcaaacbbcabbab") startState
 \end{verbatim}
-\cite{jones1995functional}
 
 \subsection{Monads for Structuring Programs}
 In this section I will illustrate how effective monads are when used to structure programs.
+\cite{jones1995functional}
 
 Firstly one should note that OCaml has non-nullable types
 i.e; one will never see null where one is expecting an
@@ -432,10 +436,87 @@ and error resistant, while providing useful error messages.
 \end{verbatim}
 
 \subsection{Monad Transformers}
+The elephant in the room
+
 Now we must discuss how one composes monads;
 say
 
 Monad transformers add functionality of one monad to another.
 We often find that difficulty arises when trying to compose monads,
 say we have a stateful computation a
+
+"Monad transformers add functionality of one monad to another. They do so by stacking a transformer version of the additional monad on top of the original one, which with enough repetition results in something like a monadic Voltron."
+"Formally, monad transformers are illustrated well by the lift function: the only function in the MonadTrans class. For regular monads its type signature looks like this:
+
+liftM :: Monad m => (a -> r) -> m a -> m r
+whereas for monad transformers its type signature looks like this:
+
+lift :: Monad m => m a -> t m a
+where m is any monad and t is the transformer."
+
+
+
+"Monad transformers have an inherent limitation: they enforce the static ordering of effect layers and hence statically fixed effect interactions. There are practically significant computations that require interleaving of effects. ‘Delimited Dynamic Binding’ (ICFP 2006) was first to bring up this point. The ‘Extensible Effects’ paper expanded that discussion on new examples. Section 5 describes simple and common programming patterns that are particularly problematic with monad transformers because the static ordering of effect layers is not flexible.
+
+"
+
+"A monad transformer is similar to a regular monad, but it's not a standalone entity: instead, it modifies the behaviour of an underlying monad. Most of the monads in the mtl library have transformer equivalents. By convention, the transformer version of a monad has the same name, with a T stuck on the end. For example, the transformer equivalent of State is StateT; it adds mutable state to an underlying monad. The WriterT monad transformer makes it possible to write data when stacked on top of another monad."
+
+"As we have already mentioned, when we stack a monad transformer on a normal monad, the result is another monad. This suggests the possibility that we can again stack a monad transformer on top of our combined monad, to give a new monad, and in fact this is a common thing to do. Under what circumstances might we want to create such a stack? 1 comment
+
+If we need to talk to the outside world, we'll have IO at the base of the stack. Otherwise, we will have some normal monad. 4 comments
+
+If we add a ReaderT layer, we give ourselves access to read-only configuration information. No comments
+
+Add a StateT layer, and we gain global state that we can modify. 2 comments
+
+Should we need the ability to log events, we can add a WriterT layer. No comments
+
+The power of this approach is that we can customise the stack to our exact needs, specifying which kinds of effects we want to support. No comments
+
+As a small example of stacked monad transformers in action, here is a reworking of the countEntries function we developed earlier. We will modify it to recurse no deeper into a directory tree than a given amount, and to record the maximum depth it reaches.
+
+In the framework that mtl provides, each monad transformer in the stack makes the API of a lower level available by providing instances of a host of typeclasses. We could follow this pattern, and write a number of boilerplate instances.
+
+
+In this case, the only way we can access the underlying State monad's put is through use of lift. No comments
+
+\begin{verbatim}
+-- file: ch18/StackStack.hs
+innerPut :: String -> Foo ()
+innerPut = lift . put
+\end{verbatim}
+
+Stacking monad transformers is analogous to composing functions. If we change the order in which we apply functions, and we then get different results, we are not surprised. So it is with monad transformers, too.
+
+Finally, when we use monads and monad transformers, we can pay an efficiency tax. For instance, the State monad carries its state around in a closure. Closures might be cheap in a Haskell implementation, but they're not free.
+"
+\cite{o2008real}
+
+
+
+
+
+
+
+
+
+Note that OCaml is impure and doesn't have monad transformers,
+it doesn't need them.
+Why?
+How does this interact with modules composing?
+
+
+
 \cite{king1993combining}
+describe how some monads may b e combined with others to yield a combined monad􏰀
+For our purp oses􏰂 we will think of a monad as a typ e constructor􏰂 together with three functions that must satisfy certain laws􏰀 For instance􏰂 we may have an interpreter and wish it to return􏰂 not just a value􏰂 but the numb er of reduc􏰉 tion steps taken to reach the value􏰀 Later􏰂 we may want our interpreter either to return a value or an error message􏰀 Without using a monad or a similar discipline􏰂 it would be a messy undertaking to do in a purely functional pro􏰉 gramming language􏰀 If however our interpreter was written in a monadic style􏰂 we would merely have to change the monad to change what extra information the interpreter should return􏰀
+
+
+are now two distinct approaches to combining E x with S t􏰂 either􏰊
+type S tE x a 􏰏 S tate 􏰝 􏰌E x a􏰚 S tate􏰎
+type E xS t a 􏰏 S tate 􏰝 E x 􏰌a􏰚 S tate􏰎
+these have entirely di􏰓erent meanings􏰀 In the 􏰁rst mo del􏰂 an expression that raises an exception also returns a state􏰀 This monad may b e thought of as mo delling the language Standard ML􏰂 where when an exception is raised the state survives􏰀 In the second mo del􏰂 if an expression raises an exception then
+the
+state is not returned􏰀
+

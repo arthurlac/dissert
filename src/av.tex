@@ -1,5 +1,8 @@
 \section{Abridged version}
 
+note a monad in haskell $\neq$ a monad in OCaml
+(maybe obvs but worth considering)
+
 A concrete example of fmap/bind/join expressed in JavaScript or ECMAScript is
 \begin{verbatim}
     const arr = [1,2,3,4];
@@ -24,19 +27,19 @@ A concrete example of fmap/bind/join expressed in JavaScript or ECMAScript is
     // === Array [1, 1, 2, 2, 3, 3, 4, 4]
 \end{verbatim}
 
+
 Or in OCaml
 \begin{verbatim}
     let fmap f x =
-        let rec aux = function
-        | [] -> []
-        | hd :: tl -> (f hd) :: (aux tl)
-    in aux x
+        let rec aux l = match l with
+            | [] -> []
+            | hd :: tl -> (f hd) :: (aux tl)
+        in aux x
 
     val fmap : ('a -> 'b) -> 'a list -> 'b list
 
     fmap (fun x -> x + 1) [1;2;3;4];;
     - : int list = [2; 3; 4; 5]
-
 \end{verbatim}
 Then we have
 \begin{verbatim}
@@ -49,9 +52,9 @@ Then we have
 \end{verbatim}
 Then we have
 \begin{verbatim}
-    let rec join = function
-    | [] -> []
-    | hd :: tl -> hd @ (join tl)
+    let rec join ll = match ll with
+        | [] -> []
+        | hd :: tl -> List.append hd (join tl)
 
     val join : 'a list list -> 'a list
 
