@@ -116,13 +116,19 @@ and we have
 \end{equation}
 
 \subsection{State Monad Example}
+In this section we will illustrate how closely 
+the $\lambda_c$-calculus relates to actual code,
+similar to what is in the Haskell standard library.
+Furthermore we will show that from the relatively
+simple triple $(fmap/bind,return,join)$ we can
+
 Firstly recall our example \ref{lc1}
 computations with side-effects:
 \begin{itemize}
     \item $T(-)$ is the functor $(-\times S)^S$, where $S$ is a nonempty set of stores.
         Intuitively a computation takes a store and returns a value together with the modified store.
-    \item $\eta_A$ is the map $a \rightarrow (\lambda s:S.\langle a,s \rangle)$
-    \item $\mu_A$ is the map $f \rightarrow (\lambda s:S.eval(fs))$,
+    \item $\eta_A$ is the map $a \rightarrow (\lambda s.\langle a,s \rangle)$
+    \item $\mu_A$ is the map $f \rightarrow (\lambda s.eval(fs))$,
         i.e. $\mu_A(f)$ is the computation that given a store $s$,
         first computes the pair computation-store $\langle f\prime,s\prime\rangle = fs$
         and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
@@ -131,8 +137,49 @@ computations with side-effects:
 This translates to the code
 this code is from the Haskell standard library
 
+Firstly consider
+$\eta_A$ the map $a \mapsto (\lambda s.\langle a,s \rangle)$
+$$\eta\ x = State\ (\lambda s.(x,s))$$
+\begin{verbatim}
+    return x = State (\ s -> (x,s))
+\end{verbatim}
+
+$\mu_A$ is the map $f \rightarrow (\lambda s.eval(fs))$,
+i.e. $\mu_A(f)$ is the computation that given a store $s$,
+first computes the pair computation-store $\langle f\prime,s\prime\rangle = fs$
+and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
+$$\mu\ mmx = State (\lambda s.\ uncurry\ runState\ (runState mmx s))$$
+where \texttt{uncurry :: (a -> b -> c) -> ((a, b) -> c)}
+
+Next fmap
+
+\begin{verbatim}
+    mx >>= \ s -> \f -> f s
+    evalState (sequence $ repeat $ do { n <- get; put (n*2); return n }) 1
+\end{verbatim}
+
+\begin{verbatim}
+newtype State s a = State { runState :: s -> (a,s) }  
+\end{verbatim}
+
+However to meaningfully have state we actually need
+get and put
+and some way to run the state
+$$(\$) :: (a -> b) -> a -> b$$
+
 \begin{verbatim}
 newtype State s a = State {runState :: s -> (a, s)}
+instance Monad (State s) where
+    return x = State $ \s -> (x,s)
+
+    (State h) >>= f = State $ \s -> let (a, newState) = h s
+                                        (State g) = f a
+                                    in  g newState
+                                    instance Functor (State s) where
+
+
+    fmap f m = State $ \s -> case runState m s of
+                                 (a, s') -> (f a, s')
 
 join :: (State s (State s a)) -> (State s a)
 join xss = State (\s -> uncurry runState (runState xss s))
@@ -143,58 +190,48 @@ instance Monad (State s) where
         let (x,s') = runState m s in
         runState (f x) s')
 
-class Monad m => MonadState s m | m -> s where
-    -- | Return the state from the internals of the monad.
-    get :: m s
-    get = state (\s -> (s, s))
+-- | Return the state from the internals of the monad.
+get :: m s
+get = state (\s -> (s, s))
 
-    -- | Replace the state inside the monad.
-    put :: s -> m ()
-    put s = state (\_ -> ((), s))
+-- | Replace the state inside the monad.
+put :: s -> m ()
+put s = state (\_ -> ((), s))
 
-    -- | Embed a simple state action into the monad.
-    state :: (s -> (a, s)) -> m a
-    state f = do
-      s <- get
-      let ~(a, s') = f s
-      put s'
-      return a
+-- | Embed a simple state action into the monad.
+state :: (s -> (a, s)) -> m a
+state f = do
+  s <- get
+  let ~(a, s') = f s
+  put s'
+  return a
 
-type GameValue = Int
-type GameState = (Bool, Int)
+import Control.Monad.State
 
-playGame :: String -> State GameState GameValue
-playGame []     = do
-    (_, score) <- get
-    return score
+pop :: State Stack Int
+pop = State $ \(x:xs) -> (x,xs)
 
-playGame (x:xs) = do
-    (on, score) <- get
-    case x of
-         'a' | on -> put (on, score + 1)
-         'b' | on -> put (on, score - 1)
-         'c'      -> put (not on, score)
-         _        -> put (on, score)
-    playGame xs
+push :: Int -> State Stack ()
+push a = State $ \xs -> ((),a:xs)
+import System.Random
+import Control.Monad.State
 
-startState = (False, 0)
-
-main = print $ evalState (playGame "abcaaacbbcabbab") startState
+randomSt :: (RandomGen g, Random a) => State g a
+randomSt = State random
 \end{verbatim}
 
 \subsection{Monads for Structuring Programs}
 In this section I will illustrate how effective monads are when used to structure programs.
-\cite{jones1995functional}
-
 Firstly one should note that OCaml has non-nullable types
-i.e; one will never see null where one is expecting an
+i.e; one will never see null or nil where one is expecting an
 int or a binary tree or anything else.
 Null values are always explicit.
 The canonical representation of null is the None variant.
-Why is this?
-Why do we need monads to this?
-What do other languages do?
 Monads can be used to succinctly and expressively structure computation with the option type.
+%TODO
+%Why is this?
+%Why do we need monads to this?
+%What do other languages do?
 
 \begin{verbatim}
   type 'a option = Some 'a | None
@@ -467,11 +504,13 @@ say we have a stateful computation a
 "Monad transformers add functionality of one monad to another. They do so by stacking a transformer version of the additional monad on top of the original one, which with enough repetition results in something like a monadic Voltron."
 "Formally, monad transformers are illustrated well by the lift function: the only function in the MonadTrans class. For regular monads its type signature looks like this:
 
+\begin{verbatim}
 liftM :: Monad m => (a -> r) -> m a -> m r
 whereas for monad transformers its type signature looks like this:
 
 lift :: Monad m => m a -> t m a
 where m is any monad and t is the transformer."
+\end{verbatim}
 
 
 
