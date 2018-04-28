@@ -578,3 +578,10 @@ How does this interact with modules composing?
 %the
 %state is not returned􏰀
 
+"
+A fundamental problem with monad transformer stacks is that
+once a particular abstract effect is instantiated,
+the order of effects in the stack becomes concrete,
+and it becomes necessary to explicitly lift operations
+through the stack."
+\cite{kammar2013handlers}

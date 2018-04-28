@@ -94,12 +94,27 @@ Relation to lambda calculus and $\beta$-equality
 In a pure language we have $\beta$-equality
 in an impure language 
 
+$\beta$-equality
+\begin{equation}
+\frac
+{\Gamma, x : T \vdash t\prime : T\prime \quad \Gamma \vdash t : T}
+{\Gamma \vdash (\lambda x.t\prime)t = t\prime[t/x]: T\prime }
+\end{equation}
 
-Briefly consider coeffects, i.e. 'ls'.
+"Understanding how programs affect their environment is a well studied area: effect systems [13] provide a static analysis of effects and monads [8] provide a unified semantics to different notions of effect. Wadler and Thiemann unify the two approaches [17]"
+
+
+Briefly consider coeffects as a complication of this discussion
+
+, i.e. 'ls'.
+$$listDirectory :: FilePath -> IO [FilePath]$$
 This is not referentially transparent really (?)
 but is it an effect?
 coeffects lead to discussions of comonads and algebraic coeffects,
 while interesting this is out of scope
+"Monadic effect systems provide a unified way of tracking effects of computations, but there is no unified mechanism for tracking how computations rely on the environment in which they are executed. This is becoming an important problem for modern software – we need to track where distributed computations run, which resources a program uses and how they use other capabilities of the environment."
+No such unified mechanism exists for tracking the context requirements. We use the term coeffect for such contextual program properties. Notions of context have been previously captured using comonads [14] (the dual of monads) and by languages derived from modal logic [12,9], but these approaches do not capture many useful examples which motivate our work.
+
 \cite{coeffects-icalp13}
 \cite{petricek2014coeffects}
 
