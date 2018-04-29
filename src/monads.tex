@@ -1,4 +1,5 @@
 \section{Monads in the Wild}
+\subsection{Overview}
 Typically a programmer will think of a monad as three function signatures
 which correspond to the triple $(T,\eta,\mu)$;
 of course much more informally.
@@ -19,7 +20,7 @@ however the semantics are exactly the same.
   \end{split}
 \end{equation}
 
-To be a faithful monad implementation it must be true that:
+To be a correct monad implementation it must be true that:
 \begin{equation}
   \begin{split}
       \lambda f.\lambda x.return\ (fmap\ f\ x)
@@ -58,7 +59,7 @@ we can chain computations in predictable and understandable ways.
 %this is because it is our primary way to interact with the monad.
 %Typically we describe our desired result in terms of functions on the monad
 %done one after the other.
-However we can create a new function from this tripple
+However we can create a new function from this triple
 \begin{align}
     bind &:: M x \rightarrow (x \rightarrow M y) \rightarrow M y \\
     bind &\equiv \lambda mx. \lambda f. join(fmap\ f\ mx)
@@ -139,66 +140,80 @@ computations with side-effects:
         and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
 \end{itemize}
 
-Firstly consider
-$\eta_A$ the map $a \mapsto (\lambda s.\langle a,s \rangle)$
-$$\eta\ x = State\ (\lambda s.(x,s))$$
-\begin{verbatim}
-    return x = State (\ s -> (x,s))
-\end{verbatim}
+We will examine how this maps to the Haskell state monad,
+this implementation is similar to the one in the standard library
+and is inspired by \cite{jones1995functional}.
 
-$\mu_A$ is the map $f \rightarrow (\lambda s.eval(fs))$,
-i.e. $\mu_A(f)$ is the computation that given a store $s$,
-first computes the pair computation-store $\langle f\prime,s\prime\rangle = fs$
-and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
-$$\mu\ mmx = State (\lambda s.\ uncurry\ runState\ (runState mmx s))$$
-where \texttt{uncurry :: (a -> b -> c) -> ((a, b) -> c)}
-
-Next fmap
-
-\begin{verbatim}
-    mx >>= \ s -> \f -> f s
-    evalState (sequence $ repeat $ do { n <- get; put (n*2); return n }) 1
-\end{verbatim}
-
-\begin{verbatim}
-newtype State s a = State { runState :: s -> (a,s) }  
-\end{verbatim}
+\begin{itemize}
+    \item First we by declaring the type of the state monad,
+        it is effectively a closure over a function
+        which takes a state \texttt{s} and returns a value \texttt{a}
+        \begin{verbatim}
+            newtype State s a = State {runState :: s -> (a, s)}
+        \end{verbatim}
+    \item Firstly consider $\eta_A$
+        the map $a \mapsto (\lambda s.\langle a,s \rangle)$,
+        this is a straightforward translation,
+        we return the function \texttt{runState} which
+        takes a state and returns the pair \texttt{(a,s)}.
+        \begin{verbatim}
+            return a = State (\ s -> (a,s))
+        \end{verbatim}
+    \item $\mu_A$ is the map $f \rightarrow (\lambda s.eval(fs))$,
+    i.e. $\mu_A(f)$ is the computation that given a store $s$,
+    first computes the pair computation-store $\langle f\prime,s\prime\rangle = fs$
+    and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
+    $$\mu\ mmx = State (\lambda s.\ uncurry\ runState\ (runState mmx s))$$
+    where \texttt{uncurry :: (a -> b -> c) -> ((a, b) -> c)}
+        \begin{verbatim}
+            join :: (State s (State s a)) -> (State s a)
+            join xss = State (\s -> uncurry runState (runState xss s))
+        \end{verbatim}
+    \item Next fmap,
+        we apply \texttt{runState}
+        we simply apply the function f
+        \begin{verbatim}
+        fmap f m = State $ \s -> (f a, s')
+            where (a, s') = runState m s
+        \end{verbatim}
+        Note that \texttt{runState} is the inner lambda
+    \item Finally we can define \texttt{bind} as
+    \begin{verbatim}
+        (State h) >>= f = State $ \s -> let (a, newState) = h s
+                                            (State g) = f a
+                                        in  g newState
+        m >>= f  = State (\ s ->
+            let (x,s') = runState m s in
+            runState (f x) s')
+        mx >>= \ s -> \f -> f s
+        evalState (sequence $ repeat $ do { n <- get; put (n*2); return n }) 1
+    \end{verbatim}
+    \item Finally consider this trivial example
+    \begin{verbatim}
+        mx >>= \ s -> \f -> f s
+        evalState (sequence $ repeat $ do { n <- get; put (n*2); return n }) 1
+        where evalState m s = fst (runState m s)
+        xecState m s = snd (runState m s)
+        runState (mapState f m) = f . runState m
+    \end{verbatim}
+\end{itemize}
 
 However to meaningfully have state we actually need
 get and put
 and some way to run the state
 
+We have defined the triple,
+how do we do something useful
+let us expand the do notation
 \begin{verbatim}
-newtype State s a = State {runState :: s -> (a, s)}
-instance Monad (State s) where
-    return x = State $ \s -> (x,s)
-
-    (State h) >>= f = State $ \s -> let (a, newState) = h s
-                                        (State g) = f a
-                                    in  g newState
-                                    instance Functor (State s) where
-
-
-    fmap f m = State $ \s -> case runState m s of
-                                 (a, s') -> (f a, s')
-
-join :: (State s (State s a)) -> (State s a)
-join xss = State (\s -> uncurry runState (runState xss s))
-
-instance Monad (State s) where
-    return x = State (\ s -> (x,s))
-    m >>= f  = State (\ s ->
-        let (x,s') = runState m s in
-        runState (f x) s')
-
 -- | Return the state from the internals of the monad.
 get :: m s
 get = state (\s -> (s, s))
-
 -- | Replace the state inside the monad.
 put :: s -> m ()
 put s = state (\_ -> ((), s))
-
+modify :: (s -> s) -> m ()
+modify f = state (\s -> ((), (f s))
 -- | Embed a simple state action into the monad.
 state :: (s -> (a, s)) -> m a
 state f = do
@@ -207,18 +222,17 @@ state f = do
   put s'
   return a
 
-import Control.Monad.State
-
-pop :: State Stack Int
+pop :: State List Int
 pop = State $ \(x:xs) -> (x,xs)
-
 push :: Int -> State Stack ()
 push a = State $ \xs -> ((),a:xs)
-import System.Random
-import Control.Monad.State
 
-randomSt :: (RandomGen g, Random a) => State g a
-randomSt = State random
+stackManip = do
+    push 3
+    a <- pop
+    pop
+ghci> stackManip [5,8,2,1]
+(5,[8,2,1])
 \end{verbatim}
 
 \subsection{Monads for Structuring Programs}
@@ -429,41 +443,37 @@ Finally consider the relation between
 Consider how convienent it is for programmers to have a category
 of programs where reliable error handling is built in by default.
 
-%%TODO
 \subsection{Monads for Imperative Programming}
 Imperative programming is undeniably popular,
-and much closer to how computers physically work than functional programming;
-There is a bridge to be crossed between functional and imperative programming
-
+and much closer to how computers physically work than functional programming.
+There is a bridge to be crossed between functional and imperative programming;
 monads have been concretely shown to be an effective method of replicating
 imperative style and retaining benefits of purity \cite{PeytonJones:1993}.
+
+%TODO
 These examples clearly illustrate how useful monads can be for structuring a program,
 however the importance and necessity of monads is that for pure functional languages
 to be actually useful we require effects. Monads give us means to achieve that.
-
 In this section we will prove the inverse,
 monads are good for imperative programming
 and imperative programmers have monad-like features
 
-
-
-"Moreover, effect handlers allow con- current programs to be written in direct-style retaining the simplicity of sequential code as opposed to callback-oriented style with either monadic concurrency libraries such as Lwt [8] and Async [5] for OCaml or explicit callbacks."
-\cite{dolaneffectively}
-
-"The use of monads to structure functional programs is de- scribed. Monads provide a convenient framework for simulating effects found in other languages, such as global state, exception handling, out- put, or non-determinism. Three case studies are looked at in detail: how monads ease the modification of a simple evaluator; how monads act as the basis of a datatype of arrays subject to in-place update; and how monads can be used to build parsers.
-"
-"Pure functional languages have this advantage: all flow of data is made explicit. And this disadvantage: sometimes it is painfully explicit."
-"It is with regard to modularity that explicit data flow becomes both a blessing and a curse. On the one hand, it is the ultimate in modularity. All data in and all data out are rendered manifest and accessible, providing a maximum of flexibility. On the other hand, it is the nadir of modularity. The essence of an algorithm can become buried under the plumbing required to carry data from its point of creation to its point of use"
+"Pure functional languages have this advantage:
+all flow of data is made explicit. And this disadvantage: sometimes it is painfully explicit."
+"It is with regard to modularity that explicit data flow becomes both a blessing and a curse.
+On the one hand, it is the ultimate in modularity.
+All data in and all data out are rendered manifest and accessible, providing a maximum of flexibility. On the other hand, it is the nadir of modularity. The essence of an algorithm can become buried under the plumbing required to carry data from its point of creation to its point of use"
 \cite{wadler1995monads}
 
 "
-%Do es the monadic style force one􏰄 in e􏰒ect􏰄 to write a functional facsimile of an
-%imp erative program, thereby losing any advantages of writing in a functional language?
-%the p ower of higher􏰆order functions and non􏰆strict semantics can b e used
-%programming easier􏰄 by de􏰐ning new action􏰆manipulating combinators􏰇
-%The p oint we are making is that it is easy for the programmer to de􏰐ne new 􏰜glue􏰝 to combine actions in just the way which is suitable for the program b eing written􏰇 It􏰚s a bit like b eing able to de􏰐ne your own control structures in an imp erative language􏰇
+Does the monadic style force one in effect to write a functional facsimile of an
+imperative program, thereby losing any advantages of writing in a functional language?
+the power of higher order functions and non strict semantics can be used
+programming easier by deing new action manipulating combinators
+The point we are making is that it is easy for the programmer to dene new glue to
+combine actions in just the way which is suitable for the program being written
+It is a bit like being able to dene your own control structures in an imperative language
 "\cite{PeytonJones:1993}
-
 
 "The special characteristics and advantages of functional programming are often summed up more or less as follows. Functional programs contain no assignment statements, so variables, once given a value, never change. More generally, functional programs contain no side-effects at all. A function call can have no effect other than to compute its result. This eliminates a major source of bugs, and also makes the order of execution irrelevant - since no side-effect can change the value of an expression, it can be evaluated at any time. This relieves the programmer of the burden of prescribing the flow of control."
 "When writing a modular program to solve a problem, one first divides the problem into sub- problems, then solves the sub-problems and combines the solutions. The ways in which one can divide up the original problem depend directly on the ways in which one can glue solutions together. Therefore, to increase ones ability to modularise a problem conceptually, one must provide new kinds of glue in the programming language."
@@ -507,6 +517,7 @@ The elephant in the room
 Now we must discuss how one composes monads;
 say
 
+
 Thus far we have shown that monads can be used for effects individually,
 however when programming we often find that we need more than one effect
 at a time. a huge number of programs will need both state
@@ -515,6 +526,24 @@ and IO.
 Monad transformers add functionality of one monad to another.
 We often find that difficulty arises when trying to compose monads,
 say we have a stateful computation a
+
+King and Wadler \cite{king1993combining}
+describe how some monads may be combined with others to yield a combined monad
+Without using a monad or a similar discipline it would be a messy undertaking
+to do in a purely functional programming language
+If however our interpreter was written in a monadic style we would merely have
+to change the monad to change what extra information the interpreter should return
+are now two distinct approaches to combining Ex with St either
+\begin{align}
+    State\ Result\ a \rightarrow (Result\ a,\ State)\\
+    Result\ State\ a \rightarrow Result\ (a,\ State)
+\end{align}
+these have entirely different meanings
+In the first model an expression that raises an exception also returns a state
+This monad may b e thought of as modelling the language Standard ML where
+when an exception is raised the state survives
+In the second model if an expression raises an exception then
+the state is not returned
 
 "Formally, monad transformers are illustrated well by the lift function:
 the only function in the MonadTrans class.
@@ -525,6 +554,41 @@ liftM :: Monad m => (a -> r) -> m a -> m r
 whereas for monad transformers its type signature looks like this:
 lift :: Monad m => m a -> t m a
 where m is any monad and t is the transformer."
+
+class MonadTrans t where
+    -- | Lift a computation from the argument monad to the constructed monad.
+    lift :: Monad m => m a -> t m a
+\end{verbatim}
+
+Consider the \texttt{MaybeT} monad transformer
+which takes a monad $m$ and returns another monad $m\prime$
+\begin{equation}
+    m\prime
+\end{equation}
+
+\begin{verbatim}
+newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
+
+mapMaybeT :: (m (Maybe a) -> n (Maybe b)) -> MaybeT m a -> MaybeT n b
+mapMaybeT f = MaybeT . f . runMaybeT
+
+instance (Functor m) => Functor (MaybeT m) where
+    fmap f = mapMaybeT (fmap (fmap f))
+
+instance (Monad m) => Monad (MaybeT m) where
+    return = MaybeT . return . Just
+    x >>= f = MaybeT $ do
+        v <- runMaybeT x
+        case v of
+            Nothing -> return Nothing
+            Just y  -> runMaybeT (f y)
+    fail _ = MaybeT (return Nothing)
+
+instance MonadTrans MaybeT where
+    lift = MaybeT . liftM Just
+
+instance (MonadIO m) => MonadIO (MaybeT m) where
+    liftIO = lift . liftIO
 \end{verbatim}
 
 Monad transformers involves
@@ -584,31 +648,10 @@ and it becomes necessary to explicitly lift operations
 through the stack."
 \cite{kammar2013handlers}
 
-
-
-
-
-
-
-
 Note that OCaml is impure and doesn't have monad transformers,
 it doesn't need them.
 Why?
 How does this interact with modules composing?
-
-
-
-King and Wadler \cite{king1993combining}
-describe how some monads may b e combined with others to yield a combined monad􏰀
-For our purp oses􏰂 we will think of a monad as a typ e constructor􏰂 together with three functions that must satisfy certain laws􏰀 For instance􏰂 we may have an interpreter and wish it to return􏰂 not just a value􏰂 but the numb er of reduc􏰉 tion steps taken to reach the value􏰀 Later􏰂 we may want our interpreter either to return a value or an error message􏰀 Without using a monad or a similar discipline􏰂 it would be a messy undertaking to do in a purely functional pro􏰉 gramming language􏰀 If however our interpreter was written in a monadic style􏰂 we would merely have to change the monad to change what extra information the interpreter should return􏰀
-
-
-are now two distinct approaches to combining E x with S t􏰂 either􏰊
-type S tE x a 􏰏 S tate 􏰝 􏰌E x a􏰚 S tate􏰎
-type E xS t a 􏰏 S tate 􏰝 E x 􏰌a􏰚 S tate􏰎
-these have entirely di􏰓erent meanings􏰀 In the 􏰁rst mo del􏰂 an expression that raises an exception also returns a state􏰀 This monad may b e thought of as mo delling the language Standard ML􏰂 where when an exception is raised the state survives􏰀 In the second mo del􏰂 if an expression raises an exception then
-the
-state is not returned􏰀
 
 "Monad transformers have an inherent limitation:
 they enforce the static ordering of effect layers and hence statically fixed effect interactions.
@@ -618,4 +661,3 @@ The ‘Extensible Effects’ paper expanded that discussion on new examples.
 Section 5 describes simple and common programming patterns that are particularly
 problematic with monad transformers because the static ordering of effect layers is not flexible.
 "
-

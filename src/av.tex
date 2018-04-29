@@ -1,29 +1,39 @@
 \section{Abridged version}
 
+\subsection{Introduction}
+Not only do they share a history, finitary monads and Lawvere theories
+"describe equivalent categorical encodings of universal algebra"\cite{riehl}.
+These ideas, while fascinating and perplexing,
+are not central to this document;
+we discuss them in this overview for an additional,
+although brief, perspective.
+
+\subsection{Monads}
+The easiest way to begin understanding monads is by thinking of them
+as a triple of functions with the interface
 \begin{equation}
   \begin{split}
-    fmap   &:: (x \rightarrow y) \rightarrow M x \rightarrow M y \\
-    return &:: x \rightarrow M x                                 \\
-    join   &:: M (M x) \rightarrow M x
+    map  &:: (x \rightarrow y) \rightarrow M x \rightarrow M y \\
+    unit &:: x \rightarrow M x                                 \\
+    join &:: M (M x) \rightarrow M x
+  \end{split}
+\end{equation}
+where $M$ is the monad. The most ubiquitous monad is the list monad
+so let's give a concrete interface where we have list of integers
+\begin{equation}
+  \begin{split}
+    map  &:: (int \rightarrow int) \rightarrow List int \rightarrow List int \\
+    unit &:: int \rightarrow List int                                        \\
+    join &:: List (List int) \rightarrow List int
   \end{split}
 \end{equation}
 
-Do programming monads need to follow the same rules as category theory monads?
-There is no way for the compiler to check these rules so practically the answer is no,
-however it is wise for monad implementations to obey them so that
-we can chain computations in predictable and understandable ways.
-
-%For programmers the most important of the triple is \texttt{fmap},
-%this is because it is our primary way to interact with the monad.
-%Typically we describe our desired result in terms of functions on the monad
-%done one after the other.
-However we can create a new function from this tripple
+However we can create a new function from this triple
 \begin{align}
     bind &:: M x \rightarrow (x \rightarrow M y) \rightarrow M y \\
     bind &\equiv \lambda mx. \lambda f. join(fmap\ f\ mx)
 \end{align}
-Bind is incredibly useful and perhaps more prominent
-to a programmer than the triple $(fmap,return,join)$.
+Bind is incredibly useful and perhaps more prominent to a programmer than the triple $(fmap,return,join)$.
 This is because it allows us to chain computations
 one after the other.
 \begin{equation}
@@ -121,7 +131,24 @@ Then we have
 \end{verbatim}
 
 
+\begin{verbatim}
+    result, err := myFunction()
+    if err != nil {
+        return nil, err
+    }
+\end{verbatim}
 
+Do programming monads need to follow the same rules as category theory monads?
+There is no way for the compiler to check these rules so practically the answer is no,
+however it is wise for monad implementations to obey them so that
+we can chain computations in predictable and understandable ways.
+
+%For programmers the most important of the triple is \texttt{fmap},
+%this is because it is our primary way to interact with the monad.
+%Typically we describe our desired result in terms of functions on the monad
+%done one after the other.
+
+\subsection{Algebraic Efffects}
 For programmers
 we are not merely playing with delimited continuations (or resumable exceptions),
 
