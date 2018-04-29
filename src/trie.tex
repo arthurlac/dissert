@@ -48,7 +48,8 @@ end = struct
 
     let is_entry t ~key = get t ~key |> Option.is_some
 
-    (* This function is find child but also returns other children seperately. *)
+    (* This function is find child but
+     * also returns other children seperately. *)
     let seperate_child children key =
         let rec aux fwd bwd = match fwd with
             | [] -> None
@@ -70,9 +71,9 @@ end = struct
         and descend children ch cs =
             match seperate_child children ch with
             (* Create new child *)
-            | None                 -> (ch, (create ~key:cs ~data)) :: children
+            | None -> (ch, (create ~key:cs ~data)) :: children
             (* Descend child *)
-            | Some (child, others) -> (ch, (aux child cs))         :: others
+            | Some (child, others) -> (ch, (aux child cs)) :: others
         in aux t key
 end
 \end{verbatim}

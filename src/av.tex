@@ -1,6 +1,64 @@
 \section{Abridged version}
 
-note a monad in haskell $\neq$ a monad in OCaml
+\begin{equation}
+  \begin{split}
+    fmap   &:: (x \rightarrow y) \rightarrow M x \rightarrow M y \\
+    return &:: x \rightarrow M x                                 \\
+    join   &:: M (M x) \rightarrow M x
+  \end{split}
+\end{equation}
+
+Do programming monads need to follow the same rules as category theory monads?
+There is no way for the compiler to check these rules so practically the answer is no,
+however it is wise for monad implementations to obey them so that
+we can chain computations in predictable and understandable ways.
+
+%For programmers the most important of the triple is \texttt{fmap},
+%this is because it is our primary way to interact with the monad.
+%Typically we describe our desired result in terms of functions on the monad
+%done one after the other.
+However we can create a new function from this tripple
+\begin{align}
+    bind &:: M x \rightarrow (x \rightarrow M y) \rightarrow M y \\
+    bind &\equiv \lambda mx. \lambda f. join(fmap\ f\ mx)
+\end{align}
+Bind is incredibly useful and perhaps more prominent
+to a programmer than the triple $(fmap,return,join)$.
+This is because it allows us to chain computations
+one after the other.
+\begin{equation}
+    x\
+    \stackrel{f}{\rightarrow} My
+    \stackrel{g}{\rightarrow} MMz
+    \stackrel{join}{\rightarrow} Mz
+\end{equation}
+\begin{equation}
+    \lambda g.
+    \lambda f.
+    \lambda x.
+    join\ (fmap\ g\ (fmap\ f\ x))
+\end{equation}
+\begin{equation}
+    (fmap\ f\ x) >>= g
+\end{equation}
+
+It is convention to use bind as the infix operator "$\bind$".
+Because \texttt{bind} is often found with \texttt{(fmap,join,return)}
+We can reformulate our axioms in terms of bind,
+indeed the axioms are often reformulated this way because it is simpler.
+\begin{align}
+    return\ x \bind f &\equiv f x \\
+    m \bind return &\equiv m \\
+    (m \bind f) \bind g &\equiv m \bind (\lambda x.(f\ x \bind g))
+\end{align}
+
+We should make the distinction that
+a monad in haskell $\neq$ a monad in OCaml $\neq$ a monad in category theory
+At first this is obvious,
+a mathematical construct is obviously different to a programming one,
+however it is different inbetween programming languages too,
+we have different means to express structures in maths/Haskell/OCaml
+thus any non-trivial structure is not really equivalent between these languages.
 (maybe obvs but worth considering)
 
 A concrete example of fmap/bind/join expressed in JavaScript or ECMAScript is

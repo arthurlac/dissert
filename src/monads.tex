@@ -8,12 +8,12 @@ the natural transformations $\eta$ and $\mu$ respectively.
 We should note that the terms \texttt{fmap,return,join}
 are not fixed, relatively often other names are used;
 for example \texttt{map} instead of \texttt{fmap}
-or \texttt{pure/unit}instead of \texttt{return},
+or \texttt{pure/unit} instead of \texttt{return},
 however the semantics are exactly the same.
 
 \begin{equation}
   \begin{split}
-    fmap   &:: M x \rightarrow (x \rightarrow y) \rightarrow M y \\
+    fmap   &:: (x \rightarrow y) \rightarrow M x \rightarrow M y \\
     return &:: x \rightarrow M x                                 \\
     join   &:: M (M x) \rightarrow M x
   \end{split}
@@ -54,34 +54,36 @@ There is no way for the compiler to check these rules so practically the answer 
 however it is wise for monad implementations to obey them so that
 we can chain computations in predictable and understandable ways.
 
-For programmers the essence of a monad is \texttt{fmap},
-this is because it is our primary way to interact with the monad.
-Typically we describe our desired result in terms of functions on the monad
-done one after the other.
-However one often sees \texttt{bind} where bind is of type
+%For programmers the most important of the triple is \texttt{fmap},
+%this is because it is our primary way to interact with the monad.
+%Typically we describe our desired result in terms of functions on the monad
+%done one after the other.
+However we can create a new function from this tripple
+\begin{align}
+    bind &:: M x \rightarrow (x \rightarrow M y) \rightarrow M y \\
+    bind &\equiv \lambda mx. \lambda f. join(fmap\ f\ mx)
+\end{align}
+Bind is incredibly useful and perhaps more prominent
+to a programmer than the triple $(fmap,return,join)$.
+This is because it allows us to chain computations
+one after the other.
 \begin{equation}
-    bind :: M x \rightarrow (x \rightarrow M y) \rightarrow M y
+    x\
+    \stackrel{f}{\rightarrow} My
+    \stackrel{g}{\rightarrow} MMz
+    \stackrel{join}{\rightarrow} Mz
 \end{equation}
-The reason why bind is as prominent,
-if not more prominent, than \texttt{fmap}
-is that it allows us to chain computations in a manner
-which occurs more often that it does with \texttt{fmap}
-%TODO
-Bind is a hugely useful tool for programmers;
-because often we want to sequence
-Can we consider bind as a morphism between two objects in the Kleisli Category.
-%TODO
 \begin{equation}
-    argument\
-    \stackrel{f}{\rightarrow}     T\ y
-    \stackrel{T g}{\rightarrow}   T\ T\ z
-    \stackrel{\mu z}{\rightarrow} T\ result
+    \lambda g.
+    \lambda f.
+    \lambda x.
+    join\ (fmap\ g\ (fmap\ f\ x))
+\end{equation}
+\begin{equation}
+    (fmap\ f\ x) >>= g
 \end{equation}
 
-It is convention to use bind as the infix operator "$\bind$" where
-\begin{equation}
-    mx \bind f \equiv join\ (fmap\ f\ mx)
-\end{equation}
+It is convention to use bind as the infix operator "$\bind$".
 Consider that \texttt{join} can be expressed in terms of \texttt{bind} (with \texttt{id})
 \begin{equation}
     join\ m \equiv m \bind id
@@ -91,22 +93,24 @@ and furthermore so can \texttt{fmap} (with \texttt{return}).
     fmap\ f\ x \equiv (return\ x) \bind f
 \end{equation}
 
+%TODO
+Can we consider bind as a morphism between two objects in the Kleisli Category?
+
 Because \texttt{bind} is often found with \texttt{(fmap,join,return)}
 We can reformulate our axioms in terms of bind,
 indeed the axioms are often reformulated this way because it is simpler.
-\begin{equation}
-  \begin{split}
-        return\ x \bind f &\equiv f x \\
-           m \bind return &\equiv m   \\
-      (m \bind f) \bind g &\equiv m \bind (\lambda x.(fx \bind g))
-  \end{split}
-\end{equation}
+\begin{align}
+    return\ x \bind f &\equiv f x \\
+    m \bind return &\equiv m \\
+    (m \bind f) \bind g &\equiv m \bind (\lambda x.(f\ x \bind g))
+\end{align}
 
-We can further rephrase ourselves in terms
+We can further rephrase these axioms in terms
 of the \textit{Kleisli composition operator} $\gg$ where
-\begin{equation}
-    \gg :: (x \rightarrow M y) \rightarrow (y \rightarrow M z) \rightarrow (x \rightarrow M z)
-\end{equation}
+\begin{align}
+    \gg &:: (x \rightarrow M y) \rightarrow (y \rightarrow M z) \rightarrow (x \rightarrow M z) \\
+    f \gg g &\equiv \lambda x. (f\ x) >>= g
+\end{align}
 and we have
 \begin{equation}
     (f \gg g) \gg h \equiv f \gg (g \gg h)
@@ -120,7 +124,8 @@ In this section we will illustrate how closely
 the $\lambda_c$-calculus relates to actual code,
 similar to what is in the Haskell standard library.
 Furthermore we will show that from the relatively
-simple triple $(fmap/bind,return,join)$ we can
+simple triple $(fmap,return,join) + bind$ we can
+construct code which has effects.
 
 Firstly recall our example \ref{lc1}
 computations with side-effects:
@@ -133,9 +138,6 @@ computations with side-effects:
         first computes the pair computation-store $\langle f\prime,s\prime\rangle = fs$
         and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
 \end{itemize}
-
-This translates to the code
-this code is from the Haskell standard library
 
 Firstly consider
 $\eta_A$ the map $a \mapsto (\lambda s.\langle a,s \rangle)$
@@ -165,7 +167,6 @@ newtype State s a = State { runState :: s -> (a,s) }
 However to meaningfully have state we actually need
 get and put
 and some way to run the state
-$$(\$) :: (a -> b) -> a -> b$$
 
 \begin{verbatim}
 newtype State s a = State {runState :: s -> (a, s)}
@@ -222,6 +223,7 @@ randomSt = State random
 
 \subsection{Monads for Structuring Programs}
 In this section I will illustrate how effective monads are when used to structure programs.
+
 Firstly one should note that OCaml has non-nullable types
 i.e; one will never see null or nil where one is expecting an
 int or a binary tree or anything else.
@@ -241,10 +243,18 @@ Monads can be used to succinctly and expressively structure computation with the
 \end{verbatim}
 
 The code for these three functions is simple and fairly self-evident.
+For example here is \texttt{join} for all values:
+\begin{verbatim}
+    join None            = None
+    join (Some None)     = None
+    join (Some (Some x)) = Some x
+\end{verbatim}
+
 However from this simple basis we can construct much more complicated programs which we
 will be certain will never have a \textit{NullPointerException}.
 Furthermore the type system will ensure 
-It will refuse to compile nonsensical code which does not type-check.
+It will refuse to compile nonsensical code which does not account for none
+wherever it is possible to see none.
 Such an assurance is invaluable in creating correct programs.
 Here it's important to note that the effect is the \textit{NullPointerException};
 we deal with it much more cleanly and effectively 100\% of the time using monads.
@@ -254,9 +264,9 @@ we deal with it much more cleanly and effectively 100\% of the time using monads
   let join = function
       | Some (Some a) -> Some a
       | _ -> None
-  let map a f = match a with
+  let fmap a f = match a with
       | None -> None
-      | Some b -> f b
+      | Some x -> Some (f x)
 \end{verbatim}
 
 Consider this example code for searching a trie data structure.
@@ -378,11 +388,12 @@ Is equivalent to
     ))))
 \end{verbatim}
 
-\texttt{do} is simply syntactic sugar for \texttt{>>=} and \texttt{>>} where
+In Haskell \texttt{do} is simply syntactic sugar for \texttt{>>=} and \texttt{>>} where
 \begin{equation}
     \texttt{>> :: M x -> M y -> M y}
 \end{equation}
 i.e. do first and ignore the result and then do the second.
+Consider it equivalent to the semi colon operator in imperative languages.
 \begin{align}
     \texttt{do}\ \{ x;\ \texttt{<stmts>} \}
     &\equiv x \texttt{ >> do \{<stmts>\}}
@@ -493,64 +504,85 @@ and error resistant, while providing useful error messages.
 
 \subsection{Monad Transformers}
 The elephant in the room
-
 Now we must discuss how one composes monads;
 say
+
+Thus far we have shown that monads can be used for effects individually,
+however when programming we often find that we need more than one effect
+at a time. a huge number of programs will need both state
+and IO.
 
 Monad transformers add functionality of one monad to another.
 We often find that difficulty arises when trying to compose monads,
 say we have a stateful computation a
 
-"Monad transformers add functionality of one monad to another. They do so by stacking a transformer version of the additional monad on top of the original one, which with enough repetition results in something like a monadic Voltron."
-"Formally, monad transformers are illustrated well by the lift function: the only function in the MonadTrans class. For regular monads its type signature looks like this:
+"Formally, monad transformers are illustrated well by the lift function:
+the only function in the MonadTrans class.
+For regular monads its type signature looks like this:
 
 \begin{verbatim}
 liftM :: Monad m => (a -> r) -> m a -> m r
 whereas for monad transformers its type signature looks like this:
-
 lift :: Monad m => m a -> t m a
 where m is any monad and t is the transformer."
 \end{verbatim}
 
+Monad transformers involves
+the creation of a \textit{stack} of monads,
+"Monad transformers add functionality of one monad to another.
+"As we have already mentioned, when we stack a monad transformer on a normal monad,
+the result is another monad.
+This suggests the possibility that we can again stack a monad transformer on top of our combined monad,
+to give a new monad,
+and in fact this is a common thing to do.
+They do so by stacking a transformer version of the additional monad
+on top of the original one, which with enough repetition results in something like a monadic Voltron."
+
+"A monad transformer is similar to a regular monad,
+but it's not a standalone entity: instead,
+it modifies the behaviour of an underlying monad.
+Most of the monads in the mtl library have transformer equivalents.
+By convention, the transformer version of a monad has the same name,
+with a T stuck on the end.
+For example, the transformer equivalent of State is StateT;
+it adds mutable state to an underlying monad.
+The WriterT monad transformer makes it possible to write data when stacked on top of another monad."
 
 
-"Monad transformers have an inherent limitation: they enforce the static ordering of effect layers and hence statically fixed effect interactions. There are practically significant computations that require interleaving of effects. ‘Delimited Dynamic Binding’ (ICFP 2006) was first to bring up this point. The ‘Extensible Effects’ paper expanded that discussion on new examples. Section 5 describes simple and common programming patterns that are particularly problematic with monad transformers because the static ordering of effect layers is not flexible.
-
-"
-
-"A monad transformer is similar to a regular monad, but it's not a standalone entity: instead, it modifies the behaviour of an underlying monad. Most of the monads in the mtl library have transformer equivalents. By convention, the transformer version of a monad has the same name, with a T stuck on the end. For example, the transformer equivalent of State is StateT; it adds mutable state to an underlying monad. The WriterT monad transformer makes it possible to write data when stacked on top of another monad."
-
-"As we have already mentioned, when we stack a monad transformer on a normal monad, the result is another monad. This suggests the possibility that we can again stack a monad transformer on top of our combined monad, to give a new monad, and in fact this is a common thing to do. Under what circumstances might we want to create such a stack? 1 comment
-
-If we need to talk to the outside world, we'll have IO at the base of the stack. Otherwise, we will have some normal monad. 4 comments
-
-If we add a ReaderT layer, we give ourselves access to read-only configuration information. No comments
-
-Add a StateT layer, and we gain global state that we can modify. 2 comments
-
-Should we need the ability to log events, we can add a WriterT layer. No comments
-
-The power of this approach is that we can customise the stack to our exact needs, specifying which kinds of effects we want to support. No comments
+A note on ordering!
+"If we need to talk to the outside world, we'll have IO at the base of the stack.
+If we add a ReaderT layer, we give ourselves access to read-only configuration information.
+Add a StateT layer, and we gain global state that we can modify.
+Should we need the ability to log events, we can add a WriterT layer.
+The power of this approach is that we can customise the stack to our exact needs,
+specifying which kinds of effects we want to support."
+Stacking monad transformers is analogous to composing functions.
+If we change the order in which we apply functions, and we then get different results, we are not surprised. So it is with monad transformers, too.
 
 As a small example of stacked monad transformers in action, here is a reworking of the countEntries function we developed earlier. We will modify it to recurse no deeper into a directory tree than a given amount, and to record the maximum depth it reaches.
-
 In the framework that mtl provides, each monad transformer in the stack makes the API of a lower level available by providing instances of a host of typeclasses. We could follow this pattern, and write a number of boilerplate instances.
+In this case, the only way we can access the underlying State monad's put is through use of lift.
 
-
-In this case, the only way we can access the underlying State monad's put is through use of lift. No comments
-
+WRITE ON LIFT
 \begin{verbatim}
 -- file: ch18/StackStack.hs
 innerPut :: String -> Foo ()
 innerPut = lift . put
 \end{verbatim}
 
-Stacking monad transformers is analogous to composing functions. If we change the order in which we apply functions, and we then get different results, we are not surprised. So it is with monad transformers, too.
-
-Finally, when we use monads and monad transformers, we can pay an efficiency tax. For instance, the State monad carries its state around in a closure. Closures might be cheap in a Haskell implementation, but they're not free.
+"
+Finally, when we use monads and monad transformers, we can pay an efficiency tax.
+For instance, the State monad carries its state around in a closure.
+Closures might be cheap in a Haskell implementation, but they're not free.
 "
 \cite{o2008real}
-
+"
+A fundamental problem with monad transformer stacks is that
+once a particular abstract effect is instantiated,
+the order of effects in the stack becomes concrete,
+and it becomes necessary to explicitly lift operations
+through the stack."
+\cite{kammar2013handlers}
 
 
 
@@ -566,22 +598,24 @@ How does this interact with modules composing?
 
 
 
-\cite{king1993combining}
-%describe how some monads may b e combined with others to yield a combined monad􏰀
-%For our purp oses􏰂 we will think of a monad as a typ e constructor􏰂 together with three functions that must satisfy certain laws􏰀 For instance􏰂 we may have an interpreter and wish it to return􏰂 not just a value􏰂 but the numb er of reduc􏰉 tion steps taken to reach the value􏰀 Later􏰂 we may want our interpreter either to return a value or an error message􏰀 Without using a monad or a similar discipline􏰂 it would be a messy undertaking to do in a purely functional pro􏰉 gramming language􏰀 If however our interpreter was written in a monadic style􏰂 we would merely have to change the monad to change what extra information the interpreter should return􏰀
+King and Wadler \cite{king1993combining}
+describe how some monads may b e combined with others to yield a combined monad􏰀
+For our purp oses􏰂 we will think of a monad as a typ e constructor􏰂 together with three functions that must satisfy certain laws􏰀 For instance􏰂 we may have an interpreter and wish it to return􏰂 not just a value􏰂 but the numb er of reduc􏰉 tion steps taken to reach the value􏰀 Later􏰂 we may want our interpreter either to return a value or an error message􏰀 Without using a monad or a similar discipline􏰂 it would be a messy undertaking to do in a purely functional pro􏰉 gramming language􏰀 If however our interpreter was written in a monadic style􏰂 we would merely have to change the monad to change what extra information the interpreter should return􏰀
 
 
-%are now two distinct approaches to combining E x with S t􏰂 either􏰊
-%type S tE x a 􏰏 S tate 􏰝 􏰌E x a􏰚 S tate􏰎
-%type E xS t a 􏰏 S tate 􏰝 E x 􏰌a􏰚 S tate􏰎
-%these have entirely di􏰓erent meanings􏰀 In the 􏰁rst mo del􏰂 an expression that raises an exception also returns a state􏰀 This monad may b e thought of as mo delling the language Standard ML􏰂 where when an exception is raised the state survives􏰀 In the second mo del􏰂 if an expression raises an exception then
-%the
-%state is not returned􏰀
+are now two distinct approaches to combining E x with S t􏰂 either􏰊
+type S tE x a 􏰏 S tate 􏰝 􏰌E x a􏰚 S tate􏰎
+type E xS t a 􏰏 S tate 􏰝 E x 􏰌a􏰚 S tate􏰎
+these have entirely di􏰓erent meanings􏰀 In the 􏰁rst mo del􏰂 an expression that raises an exception also returns a state􏰀 This monad may b e thought of as mo delling the language Standard ML􏰂 where when an exception is raised the state survives􏰀 In the second mo del􏰂 if an expression raises an exception then
+the
+state is not returned􏰀
 
+"Monad transformers have an inherent limitation:
+they enforce the static ordering of effect layers and hence statically fixed effect interactions.
+There are practically significant computations that require interleaving of effects.
+‘Delimited Dynamic Binding’ (ICFP 2006) was first to bring up this point.
+The ‘Extensible Effects’ paper expanded that discussion on new examples.
+Section 5 describes simple and common programming patterns that are particularly
+problematic with monad transformers because the static ordering of effect layers is not flexible.
 "
-A fundamental problem with monad transformer stacks is that
-once a particular abstract effect is instantiated,
-the order of effects in the stack becomes concrete,
-and it becomes necessary to explicitly lift operations
-through the stack."
-\cite{kammar2013handlers}
+

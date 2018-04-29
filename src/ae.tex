@@ -11,8 +11,11 @@ We can begin to understand algebraic effects by saying that
 we have effects we can manipulate algebraically;
 that is the interpretation of an expression is
 subject to an operator and its subexpressions.
-The operator being similar in nature to \texttt{raise},
-for example, in exceptions.
+For instance, $a + b$ is interpreted as an operator
+$+$ with its own semantics along with the value of its
+two subexpressions $a$ and $b$.
+One can consider \texttt{panic}, as a nullary operator
+with no subexpressions.
 
 We can further our initial understanding with another view
 relating algebraic effects to continuations,
@@ -68,6 +71,8 @@ will find algebraic effects more intuitive than an equivalent monads.
 
 Notice that continuations are not mentioned here,
 this is because, as discussed previously,
+continuations are of a computationally different character
+than these other effects
 \cite{Plotkin:2002dw}\cite{hyland2007combining}.
 
 Let us examine input and output as an algebraic effect first,
@@ -282,8 +287,7 @@ we will now explore whether an algebraic effect implementation
     let rec search chars t =
         match chars with
         | []      -> val_extract t
-        | c :: cs -> bind_search (find_child t c) cs
-    and bind_search ot chars = ot >>= search chars
+        | c :: cs -> (find_child t c) >>= searh cs
     in search key t
 \end{verbatim}
 
@@ -306,8 +310,36 @@ Contrast this with an algebraic effect implementation
     | value -> value
 \end{verbatim}
 
-We can 
+We can immediately see that this implementation is more verbose,
+which is not necessarily desirable;
+however the mechanisms of how this function works
+are more apparent.
 
+Next we shall consider an example
+To illustrate the purpose of this function here
+is an example of two variables.
+It generates $2^n$ where $n = 2$
+
+\begin{verbatim}
+    type t =
+        | And   of t * t
+        | Or    of t * t
+        | Not   of t
+        | Var   of var
+        | Const of bool
+    type var = string
+    type ctxt = (var * bool) list
+
+    gen_ctxts ["a";"b"];;
+    - : (string * bool) list list = [
+        [("a", true);  ("b", true)];
+        [("a", true);  ("b", false)];
+        [("a", false); ("b", true)];
+        [("a", false); ("b", false)]
+    ]
+\end{verbatim}
+
+Here is a straightforward implementation
 \begin{verbatim}
   let gen_ctxts vars =
     let push ctxt v b = List.map ctxt ~f:(fun x -> (v, b) :: x) in
@@ -320,18 +352,7 @@ We can
     in aux vars
 \end{verbatim}
 
-Next we shall consider an example
-
 \begin{verbatim}
-  type t =
-    | And   of t * t
-    | Or    of t * t
-    | Not   of t
-    | Var   of string
-    | Const of bool
-  type var = string
-  type ctxt = (var * bool) list
-
   let gen_ctxts vars : var list -> (var * bool) list list =
     let push ctxt v b = List.map ctxt ~f:(fun x -> (v, b) :: x) in
     let rec aux vs = match vs with
@@ -342,22 +363,12 @@ Next we shall consider an example
         (push vs' v true) @ (push vs' v false)
     in aux vars
 \end{verbatim}
-
-To illustrate the purpose of this function here
-is an example of two variables.
-It generates $2^n$ where $n = 2$
-
-\begin{verbatim}
-    gen_ctxts ["a";"b"];;
-    - : (string * bool) list list = [
-        [("a", true);  ("b", true)];
-        [("a", true);  ("b", false)];
-        [("a", false); ("b", true)];
-        [("a", false); ("b", false)]
-    ]
-\end{verbatim}
-
 Consider the algebraic effect version
+%TODO
+%TODO
+%TODO
+%TODO
+%TODO
 
 \begin{verbatim}
   let gen_ctxts vars =
@@ -389,19 +400,14 @@ the order of effects in the stack becomes concrete,
 and it becomes necessary to explicitly lift operations
 through the stack."
 \cite{kammar2013handlers}
-
 Monad transformers can quickly become unwieldy when there are lots of effects to manage,
 leading to a temptation in larger programs to combine everything into one coarse-grained state and exception monad.
 \cite{brady2013programming}
-
 lots of ppl say the monads when composed make effects coarse grained
 and this is ugly
-
 OCaml is impure but has monads, and soon effects, wen you need them?
-is this the most 'pratical' approach?
-
+is this the most 'practical' approach?
 algebraic effects are more scalable solution for engineering programs!
-
 this maybe one of the reasons why they seem to be so popular in systems
 programming
 
