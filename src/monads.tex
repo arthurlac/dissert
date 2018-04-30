@@ -636,7 +636,8 @@ class MonadTrans t where
 
 \begin{example}
     As a simple example we shall consider
-    combining \texttt{IO} onto a \texttt{Maybe} monad.
+    creating a transformer for the \texttt{Maybe} monad.
+    %TODO Explain exactly what we get
 
     We shall look at this using code from \cite{haskellT}.
     Our desired result is the \texttt{MaybeT} monad transformer
@@ -667,9 +668,10 @@ class MonadTrans t where
     instance (Monad m) => Monad (MaybeT m) where
     return = MaybeT . return . Just
     \end{verbatim}
-    %TODO
-    Bind simply obtains the value of the target monad,
-    which we 
+
+    Bind extracts the value,
+    if it is nothing we wrap that via return.
+    Otherwise we wrap the value applied to $f$.
     \begin{verbatim}
     x >>= f :: M (Maybe a) -> (a -> Maybe b) -> M (Maybe b)
     x >>= f = MaybeT $ do
@@ -678,7 +680,8 @@ class MonadTrans t where
             Nothing -> return Nothing
             Just y  -> runMaybeT (f y)
     \end{verbatim}
-    Finally we make define the all important \texttt{lift} function
+    Finally we define the all important \texttt{lift} function,
+    %TODO lift will allow us to...
     \begin{verbatim}
     instance MonadTrans MaybeT where
     lift m1 = MaybeT (m1 >>= \ x -> return (Just x))
@@ -689,12 +692,6 @@ class MonadTrans t where
 
     -- resulting in
     lift = MaybeT . liftM Just
-    \end{verbatim}
-
-    Finally we have
-    \begin{verbatim}
-    instance (MonadIO m) => MonadIO (MaybeT m) where
-    liftIO = lift . liftIO
     \end{verbatim}
     %TODO Example maybe IO
 \end{example}
@@ -720,17 +717,11 @@ Firstly one has to note that, there is an efficiency tax,
 Closures might be cheap in a Haskell implementation, but they're not free.
 "\cite{o2008real}
 The next compliant is that we frequently see \textit{boilerplate code},
-i.e. we need to explicity lift useful functions through the stack
+i.e. we need to explicitly lift useful functions through the stack
 \cite{kammar2013handlers}.
-A final critiscism is that
-"
-they enforce the static ordering of effect layers and hence statically fixed effect interactions.
-There are practically significant computations that require interleaving of effects.
-‘Delimited Dynamic Binding’ (ICFP 2006) was first to bring up this point.
-The ‘Extensible Effects’ paper expanded that discussion on new examples.
-Section 5 describes simple and common programming patterns that are particularly
-problematic with monad transformers because the static ordering of effect layers is not flexible.
-"
+A final criticism is that transformers exert inflexibility on implementations
+due to requiring a static ordering of effects.
+%TODO Cite static ordering
 
 As a final note on monad transformers,
 we should say that OCaml is impure and does not have monad transformers,
