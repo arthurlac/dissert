@@ -133,6 +133,7 @@ Null values are always explicit.
 The canonical representation of null is the None variant.
 Monads can be used to succinctly and expressively structure computation with the option type.
 %TODO Elucidate non-nullable types
+%TODO Explain maybe
 %Why is this?
 %Why do we need monads to this?
 %What do other languages do?
@@ -636,78 +637,79 @@ class MonadTrans t where
 \begin{example}
     As a simple example we shall consider
     combining \texttt{IO} onto a \texttt{Maybe} monad.
-    We need a \texttt{MaybeT} monad transformer
+
+    We shall look at this using code from \cite{haskellT}.
+    Our desired result is the \texttt{MaybeT} monad transformer
     which accepts a monad $m$ and returns a monad $m\prime$
     with the effects of $m$ and maybe too.
+    The naming convention for a monad transformer is to append "T".
 
     We begin by defining the type of \texttt{MaybeT}
-    which !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    all we need is a monad \texttt{m} into which we will
+    put a maybe value.
     \begin{verbatim}
     newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
     \end{verbatim}
 
-    We can define \texttt{fmap}
+    We can define \texttt{fmap} via \texttt{mapMaybeT}.
     \begin{verbatim}
     mapMaybeT :: (m (Maybe a) -> n (Maybe b)) -> MaybeT m a -> MaybeT n b
     mapMaybeT f = MaybeT . f . runMaybeT
 
     instance (Functor m) => Functor (MaybeT m) where
     fmap f = mapMaybeT (fmap (fmap f))
-
     \end{verbatim}
-
-    We can define 
+    Next we define return,
+    which takes a value wraps it in \texttt{Just},
+    applies the target monad return,
+    and finally wraps it in \texttt{MaybeT}.
     \begin{verbatim}
     instance (Monad m) => Monad (MaybeT m) where
     return = MaybeT . return . Just
+    \end{verbatim}
+    %TODO
+    Bind simply obtains the value of the target monad,
+    which we 
+    \begin{verbatim}
+    x >>= f :: M (Maybe a) -> (a -> Maybe b) -> M (Maybe b)
     x >>= f = MaybeT $ do
         v <- runMaybeT x
         case v of
             Nothing -> return Nothing
             Just y  -> runMaybeT (f y)
-
     \end{verbatim}
-    Finally we have
+    Finally we make define the all important \texttt{lift} function
     \begin{verbatim}
     instance MonadTrans MaybeT where
+    lift m1 = MaybeT (m1 >>= \ x -> return (Just x))
+
+    -- alternatively using
+    liftM   :: (Monad m) => (a1 -> r) -> m a1 -> m r
+    liftM f m1 = do { x1 <- m1; return (f x1) }
+
+    -- resulting in
     lift = MaybeT . liftM Just
     \end{verbatim}
+
     Finally we have
     \begin{verbatim}
     instance (MonadIO m) => MonadIO (MaybeT m) where
     liftIO = lift . liftIO
     \end{verbatim}
+    %TODO Example maybe IO
 \end{example}
 
+%TODO Better phrasing
+We have seen that we can combine monads,
+using a monad transformer which takes one monad
+and produces another;
+naturally this leads us to potentially
+having another monad transformer which we can input
+a combined monad into.
 Monad transformers involves
 the creation of a \textit{stack} of monads,
-"Monad transformers add functionality of one monad to another.
-"As we have already mentioned, when we stack a monad transformer on a normal monad,
-the result is another monad.
-This suggests the possibility that we can again stack a monad transformer on top of our combined monad,
-to give a new monad,
-and in fact this is a common thing to do.
-They do so by stacking a transformer version of the additional monad
-on top of the original one, which with enough repetition results in something like a monadic Voltron."
-
-"A monad transformer is similar to a regular monad,
-but it's not a standalone entity: instead,
-it modifies the behaviour of an underlying monad.
-Most of the monads in the mtl library have transformer equivalents.
-By convention, the transformer version of a monad has the same name,
-with a T stuck on the end.
-For example, the transformer equivalent of State is StateT;
-it adds mutable state to an underlying monad.
-The WriterT monad transformer makes it possible to write data when stacked on top of another monad."
-
-"If we need to talk to the outside world, we'll have IO at the base of the stack.
-If we add a ReaderT layer, we give ourselves access to read-only configuration information.
-Add a StateT layer, and we gain global state that we can modify.
-Should we need the ability to log events, we can add a WriterT layer.
-The power of this approach is that we can customise the stack to our exact needs,
-specifying which kinds of effects we want to support."
-Stacking monad transformers is analogous to composing functions.
-If we change the order in which we apply functions, and we then get different results, we are not surprised. So it is with monad transformers, too.
+this is a generic method of combining monads
+such that we can combine the effects we need.
 
 Monad transformers are effective,
 and they will not be the largest issue in most programs
