@@ -94,7 +94,7 @@ and furthermore so can \texttt{fmap} (with \texttt{return}).
     fmap\ f\ x \equiv (return\ x) \bind f
 \end{equation}
 
-%TODO
+%TODO bind relation to kleisli cat
 Can we consider bind as a morphism between two objects in the Kleisli Category?
 
 Because \texttt{bind} is often found with \texttt{(fmap,join,return)}
@@ -244,7 +244,7 @@ int or a binary tree or anything else.
 Null values are always explicit.
 The canonical representation of null is the None variant.
 Monads can be used to succinctly and expressively structure computation with the option type.
-%TODO
+%TODO Elucidate non-nullable types
 %Why is this?
 %Why do we need monads to this?
 %What do other languages do?
@@ -315,6 +315,29 @@ we simply iterate across the list creating a node in the trie for each character
 until the list is exhausted at which point we insert the value.
 
 %TODO tikz example of the data structure
+\begin{center}
+    \begin{tikzpicture}[level distance=1.5cm,
+  level 1/.style={sibling distance=5cm},
+  level 2/.style={sibling distance=1.5cm},
+  level 3/.style={sibling distance=1.5cm}]
+  \node {$a \leq b$}
+    child {node {$b \leq c$}
+        child {node {\textbf{\textit{a,b,c}}}}
+        child {node {$a \leq c$} {
+          child {node {\textbf{\textit{a,c,b}}}}
+          child {node {\textbf{\textit{c,a,b}}}}
+      }}
+    }
+    child {node {$b \leq c$}
+        child {node {$a \leq c$} {
+          child {node {\textbf{\textit{b,a,c}}}}
+          child {node {\textbf{\textit{b,c,a}}}}
+      }}
+          child {node {\textbf{\textit{c,b,a}}}}
+    };
+\end{tikzpicture}
+\end{center}
+
 
 In the search code t is the trie, key is a list of characters over which
 we iterate the search function. For each character we call find child on
@@ -450,7 +473,7 @@ There is a bridge to be crossed between functional and imperative programming;
 monads have been concretely shown to be an effective method of replicating
 imperative style and retaining benefits of purity \cite{PeytonJones:1993}.
 
-%TODO
+%TODO Imperative prog edit flow
 These examples clearly illustrate how useful monads can be for structuring a program,
 however the importance and necessity of monads is that for pure functional languages
 to be actually useful we require effects. Monads give us means to achieve that.
