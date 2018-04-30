@@ -50,7 +50,7 @@ Contrast these monad implementation laws with the diagrams
     \end{tikzcd}
 \end{equation}
 
-Do programming monads need to follow the same rules as category theory monads?
+Do monad implementations need to follow these axioms?
 There is no way for the compiler to check these rules so practically the answer is no,
 however it is wise for monad implementations to obey them so that
 we can chain computations in predictable and understandable ways.
@@ -97,8 +97,8 @@ and furthermore so can \texttt{fmap} (with \texttt{return}).
 %TODO bind relation to kleisli cat
 Can we consider bind as a morphism between two objects in the Kleisli Category?
 
-Because \texttt{bind} is often found with \texttt{(fmap,join,return)}
-We can reformulate our axioms in terms of bind,
+Because \texttt{bind} is often found with \texttt{(fmap,join,return)},
+we can reformulate our axioms in terms of bind;
 indeed the axioms are often reformulated this way because it is simpler.
 \begin{align}
     return\ x \bind f &\equiv f x \\
@@ -120,123 +120,11 @@ and we have
     return \gg f \equiv f \equiv f \gg return
 \end{equation}
 
-\subsection{State Monad Example}
-In this section we will illustrate how closely 
-the $\lambda_c$-calculus relates to actual code,
-similar to what is in the Haskell standard library.
-Furthermore we will show that from the relatively
-simple triple $(fmap,return,join) + bind$ we can
-construct code which has effects.
-
-Firstly recall our example \ref{lc1}
-computations with side-effects:
-\begin{itemize}
-    \item $T(-)$ is the functor $(-\times S)^S$, where $S$ is a nonempty set of stores.
-        Intuitively a computation takes a store and returns a value together with the modified store.
-    \item $\eta_A$ is the map $a \rightarrow (\lambda s.\langle a,s \rangle)$
-    \item $\mu_A$ is the map $f \rightarrow (\lambda s.eval(fs))$,
-        i.e. $\mu_A(f)$ is the computation that given a store $s$,
-        first computes the pair computation-store $\langle f\prime,s\prime\rangle = fs$
-        and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
-\end{itemize}
-
-We will examine how this maps to the Haskell state monad,
-this implementation is similar to the one in the standard library
-and is inspired by \cite{jones1995functional}.
-
-\begin{itemize}
-    \item First we by declaring the type of the state monad,
-        it is effectively a closure over a function
-        which takes a state \texttt{s} and returns a value \texttt{a}
-        \begin{verbatim}
-            newtype State s a = State {runState :: s -> (a, s)}
-        \end{verbatim}
-    \item Firstly consider $\eta_A$
-        the map $a \mapsto (\lambda s.\langle a,s \rangle)$,
-        this is a straightforward translation,
-        we return the function \texttt{runState} which
-        takes a state and returns the pair \texttt{(a,s)}.
-        \begin{verbatim}
-            return a = State (\ s -> (a,s))
-        \end{verbatim}
-    \item $\mu_A$ is the map $f \rightarrow (\lambda s.eval(fs))$,
-    i.e. $\mu_A(f)$ is the computation that given a store $s$,
-    first computes the pair computation-store $\langle f\prime,s\prime\rangle = fs$
-    and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
-    $$\mu\ mmx = State (\lambda s.\ uncurry\ runState\ (runState mmx s))$$
-    where \texttt{uncurry :: (a -> b -> c) -> ((a, b) -> c)}
-        \begin{verbatim}
-            join :: (State s (State s a)) -> (State s a)
-            join xss = State (\s -> uncurry runState (runState xss s))
-        \end{verbatim}
-    \item Next fmap,
-        we apply \texttt{runState}
-        we simply apply the function f
-        \begin{verbatim}
-        fmap f m = State $ \s -> (f a, s')
-            where (a, s') = runState m s
-        \end{verbatim}
-        Note that \texttt{runState} is the inner lambda
-    \item Finally we can define \texttt{bind} as
-    \begin{verbatim}
-        (State h) >>= f = State $ \s -> let (a, newState) = h s
-                                            (State g) = f a
-                                        in  g newState
-        m >>= f  = State (\ s ->
-            let (x,s') = runState m s in
-            runState (f x) s')
-        mx >>= \ s -> \f -> f s
-        evalState (sequence $ repeat $ do { n <- get; put (n*2); return n }) 1
-    \end{verbatim}
-    \item Finally consider this trivial example
-    \begin{verbatim}
-        mx >>= \ s -> \f -> f s
-        evalState (sequence $ repeat $ do { n <- get; put (n*2); return n }) 1
-        where evalState m s = fst (runState m s)
-        xecState m s = snd (runState m s)
-        runState (mapState f m) = f . runState m
-    \end{verbatim}
-\end{itemize}
-
-However to meaningfully have state we actually need
-get and put
-and some way to run the state
-
-We have defined the triple,
-how do we do something useful
-let us expand the do notation
-\begin{verbatim}
--- | Return the state from the internals of the monad.
-get :: m s
-get = state (\s -> (s, s))
--- | Replace the state inside the monad.
-put :: s -> m ()
-put s = state (\_ -> ((), s))
-modify :: (s -> s) -> m ()
-modify f = state (\s -> ((), (f s))
--- | Embed a simple state action into the monad.
-state :: (s -> (a, s)) -> m a
-state f = do
-  s <- get
-  let ~(a, s') = f s
-  put s'
-  return a
-
-pop :: State List Int
-pop = State $ \(x:xs) -> (x,xs)
-push :: Int -> State Stack ()
-push a = State $ \xs -> ((),a:xs)
-
-stackManip = do
-    push 3
-    a <- pop
-    pop
-ghci> stackManip [5,8,2,1]
-(5,[8,2,1])
-\end{verbatim}
-
 \subsection{Monads for Structuring Programs}
 In this section I will illustrate how effective monads are when used to structure programs.
+
+It is well accepted that some algorithms become much more elegant
+and simple when expressed in a functional paradigm
 
 Firstly one should note that OCaml has non-nullable types
 i.e; one will never see null or nil where one is expecting an
@@ -314,30 +202,39 @@ Create is shown to just illustrate the data structure,
 we simply iterate across the list creating a node in the trie for each character
 until the list is exhausted at which point we insert the value.
 
-%TODO tikz example of the data structure
+Below is an example of a trie,
+mapping list of characters to intergers,
+at the root is the empty string,
+then we have various key value pairs,
+for example the key "tea" has the value 6.
+Note that although "te" is part of the trie,
+it has no value associated with that key.
+Also note that keys not at leaf level can have associated
+values, for example ("in", 4).
 \begin{center}
     \begin{tikzpicture}[level distance=1.5cm,
-  level 1/.style={sibling distance=5cm},
-  level 2/.style={sibling distance=1.5cm},
-  level 3/.style={sibling distance=1.5cm}]
-  \node {$a \leq b$}
-    child {node {$b \leq c$}
-        child {node {\textbf{\textit{a,b,c}}}}
-        child {node {$a \leq c$} {
-          child {node {\textbf{\textit{a,c,b}}}}
-          child {node {\textbf{\textit{c,a,b}}}}
-      }}
-    }
-    child {node {$b \leq c$}
-        child {node {$a \leq c$} {
-          child {node {\textbf{\textit{b,a,c}}}}
-          child {node {\textbf{\textit{b,c,a}}}}
-      }}
-          child {node {\textbf{\textit{c,b,a}}}}
+  level 1/.style={sibling distance=3.5cm},
+  level 2/.style={sibling distance=3cm},
+  level 3/.style={sibling distance=2.5cm}]
+  \node {$\varnothing$}
+        child {node {$t$}
+            child {node[text width=2cm,align=center] {$o$ \\ \textbf{"to" : 9}}}
+            child {node {$e$}
+                child {node[text width=2cm,align=center] {$a$ \\ \textbf{"tea" : 6}}}
+                child {node[text width=2cm,align=center] {$d$ \\ \textbf{"ted" : 1}}}
+                child {node[text width=2cm,align=center] {$n$ \\ \textbf{"ten" : 3}}}
+            }
+        }
+    child {node {$a$}
+            child {node[text width=2cm,align=center] {$t$ \\ \textbf{"at" : 5}}}
+        }
+    child {node {$i$}
+            child {node[text width=4cm,align=center] {$n$ \\ \textbf{"in" : 4}}
+                child {node[text width=2cm,align=center] {$n$ \\ \textbf{"inn" : 9}}}
+                }
     };
 \end{tikzpicture}
 \end{center}
-
 
 In the search code t is the trie, key is a list of characters over which
 we iterate the search function. For each character we call find child on
@@ -466,6 +363,152 @@ Finally consider the relation between
 Consider how convienent it is for programmers to have a category
 of programs where reliable error handling is built in by default.
 
+\subsection{State Monad Example}
+In this section we will illustrate how closely
+the $\lambda_c$-calculus relates to actual code,
+similar to what is in the Haskell standard library.
+Furthermore we will show that from the relatively
+simple triple $(fmap,return,join) + bind$ we can
+construct code which has effects.
+
+Firstly recall our example \ref{lc1} computations with
+side-effects\cite{moggi1989computational}:
+\begin{itemize}
+    \item $T(-)$ is the functor $(-\times S)^S$, where $S$ is a nonempty set of stores.
+        Intuitively a computation takes a store and returns a value together with the modified store.
+    \item $\eta_A$ is the map $a \rightarrow (\lambda s.\langle a,s \rangle)$
+    \item $\mu_A$ is the map $f \rightarrow (\lambda s.eval(fs))$,
+        i.e. $\mu_A(f)$ is the computation that given a store $s$,
+        first computes the pair computation-store $\langle f\prime,s\prime\rangle = f\ s$
+        and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime\ s\prime$.
+\end{itemize}
+
+We will examine how this maps to the Haskell state monad,
+this implementation is similar to the one in the standard library
+and is inspired by \cite{jones1995functional}.
+We need to begin by declaring the type of the state monad,
+it is effectively a closure over a function
+which takes a state \texttt{s} and returns a value \texttt{a}.
+In Moggi's work the function is anonymous however we name it
+\texttt{runState}.
+\begin{verbatim}
+    newtype State s a = State {runState :: s -> (a, s)}
+\end{verbatim}
+
+Next \texttt{return},
+consider $\eta_A$ the map $a \mapsto (\lambda s.\langle a,s \rangle)$,
+this is a straightforward translation,
+we just return a closure to an anonymous function
+which takes a state and returns the pair \texttt{(a,s)}.
+This anonymous function becomes \texttt{runState} for our
+monad $State\ a$.
+\begin{verbatim}
+    return a = State (\ s -> (a,s))
+\end{verbatim}
+
+Moggi defines $\mu_A$ as the map $f \rightarrow (\lambda s.eval(fs))$,
+we define this
+\begin{verbatim}
+    join :: (State s (State s a)) -> (State s a)
+    join ssa = State (\s ->
+        let a, s' = (runState ssa) s in
+        (runState s') a
+    )
+    -- More idiomatically
+    join ssa = State (\s -> uncurry runState (runState ssa s))
+    -- where
+    uncurry :: (a -> b -> c) -> ((a, b) -> c)
+    uncurry f = \p ->  f (fst p) (snd p)
+\end{verbatim}
+
+Next fmap, which Moggi defines as
+the functor $(-\times S)^S$,
+where $S$ is a nonempty set of stores.
+This corresponds to applying $f$ to $a$ and
+a new state $s\prime$.
+\begin{verbatim}
+fmap :: (a -> b) -> State s a -> State s b
+fmap f m = State $ \ s -> (f a, s')
+    where (a, s') = runState m s
+\end{verbatim}
+
+At this point we should consider
+that the Haskell implementation is remarkably
+similar to the definition specified by Moggi,
+of course it is not a completely direct translation
+however the relation is obvious.
+That said, we have not yet defined something "usable",
+but we are close.
+
+Finally we can define \texttt{bind} as
+\begin{verbatim}
+    m >>= k = State $ \s -> case runState m s of
+                        (a, s') -> runState (k a) s'
+    -- Or rephrased slightly
+    m >>= f  = State (\ s ->
+        let (x, s') = runState m s in
+        runState (f x) s')
+\end{verbatim}
+
+Briefly, one should note that it appears many Haskellers
+have a terrible fear of extraneous parenthesis,
+as such \texttt{\$} can be read as "\texttt{(}"
+and put the matching "\texttt{)}" somewhere appropriate.
+
+Recall that we proposed:
+\begin{equation}
+    join\ m \equiv m \bind id
+\end{equation}
+Now is an ideal time to verify this in practise,
+replace \texttt{k} for \texttt{id} and
+observe that $id\ x \equiv x$ and we have
+\begin{verbatim}
+    m >>= id = State (\ s ->
+        let (x, s') = runState m s in
+        runState (id x) s')
+
+    m >>= id = State (\ s ->
+        let (x, s') = runState m s in
+        runState x s')
+\end{verbatim}
+This is indeed equivalent to our previous
+definition of \texttt{join}.
+
+We have defined the triple,
+one should ask how to actually do something useful;
+we shall consider the example of a stack from \cite{lipovaca2011learn}.
+\begin{verbatim}
+type Stack = [Int]
+
+pop :: Stack -> (Int, Stack)
+pop = State $ \(x:xs) -> (x, xs)
+
+push :: Int -> Stack -> ((), Stack)
+push a = State $ \xs -> ((), a:xs)
+
+stackManip = do
+    push 3
+    a <- pop
+    pop
+
+-- Which is equivalent to
+stackManip stack =
+    (push 3 >> (\ stack' ->
+        stack' >>= a >> (\ stack'' ->
+            pop stack''
+        )
+    )) stack
+
+-- And equivalent to
+stackManip stack = let
+    ((), stack')  = push 3 stack
+    (a , stack'') = pop stack'
+    in pop stack''
+
+ghci> stackManip [5,8,2,1]
+(5,[8,2,1])
+\end{verbatim}
+
 \subsection{Monads for Imperative Programming}
 Imperative programming is undeniably popular,
 and much closer to how computers physically work than functional programming.
@@ -545,83 +588,96 @@ and error resistant, while providing useful error messages.
 \end{verbatim}
 
 \subsection{Monad Transformers}
-The elephant in the room
-Now we must discuss how one composes monads;
-say
-
-
+The elephant in the room, when it comes to monads, is their composition.
 Thus far we have shown that monads can be used for effects individually,
 however when programming we often find that we need more than one effect
-at a time. a huge number of programs will need both state
-and IO.
-
-Monad transformers add functionality of one monad to another.
-We often find that difficulty arises when trying to compose monads,
-say we have a stateful computation a
+at a time.
+For instance, a huge number of programs will need both state and IO,
+hence we need means to combine these effects.
 
 King and Wadler \cite{king1993combining}
-describe how some monads may be combined with others to yield a combined monad
-Without using a monad or a similar discipline it would be a messy undertaking
-to do in a purely functional programming language
-If however our interpreter was written in a monadic style we would merely have
-to change the monad to change what extra information the interpreter should return
-are now two distinct approaches to combining Ex with St either
+describe how some monads method which operates on monads to yield a combined monad.
+The idea is to add the functionality of one monad to another, underlying, monad.
+
+They present an example of constructing a parser which needs both state
+and the possibly to raise an exception,
+returning either an error or a successful result.
+We can achieve this desired combined monad in exactly two manners.
 \begin{align}
     State\ Result\ a \rightarrow (Result\ a,\ State)\\
     Result\ State\ a \rightarrow Result\ (a,\ State)
 \end{align}
-these have entirely different meanings
-In the first model an expression that raises an exception also returns a state
-This monad may b e thought of as modelling the language Standard ML where
-when an exception is raised the state survives
-In the second model if an expression raises an exception then
-the state is not returned
+These are not equivalent at all.
+For $Result\ State\ a$ with any state obtained during the computation
+is lost when the overall result is achieved.
+This return type is either success or failure with no knowledge of the state.
+Conversely in the first monad we have our state returned along with the result.
+This is far more useful.
+This example shows one of the key difficulties of combining monads,
+the order in which we combine them matters greatly!
+The analogy of composing functions is useful to explain why this is,
+it is easy to see that for many $f$ and $g$ that
+\begin{equation}
+    g \circ f \not\equiv g \circ f
+\end{equation}
 
-"Formally, monad transformers are illustrated well by the lift function:
-the only function in the MonadTrans class.
-For regular monads its type signature looks like this:
+In practise we can define a \textit{monad transformer}
+to be a higher order monad which takes a monad
+and produces a new combined monad with the effects of
+monad given as the underlying monad.
 
+The key function here is $lift$.
 \begin{verbatim}
-liftM :: Monad m => (a -> r) -> m a -> m r
-whereas for monad transformers its type signature looks like this:
-lift :: Monad m => m a -> t m a
-where m is any monad and t is the transformer."
-
 class MonadTrans t where
     -- | Lift a computation from the argument monad to the constructed monad.
     lift :: Monad m => m a -> t m a
 \end{verbatim}
 
-Consider the \texttt{MaybeT} monad transformer
-which takes a monad $m$ and returns another monad $m\prime$
-\begin{equation}
-    m\prime
-\end{equation}
+\begin{example}
+    As a simple example we shall consider
+    combining \texttt{IO} onto a \texttt{Maybe} monad.
+    We need a \texttt{MaybeT} monad transformer
+    which accepts a monad $m$ and returns a monad $m\prime$
+    with the effects of $m$ and maybe too.
 
-\begin{verbatim}
-newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
+    We begin by defining the type of \texttt{MaybeT}
+    which !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    \begin{verbatim}
+    newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
+    \end{verbatim}
 
-mapMaybeT :: (m (Maybe a) -> n (Maybe b)) -> MaybeT m a -> MaybeT n b
-mapMaybeT f = MaybeT . f . runMaybeT
+    We can define \texttt{fmap}
+    \begin{verbatim}
+    mapMaybeT :: (m (Maybe a) -> n (Maybe b)) -> MaybeT m a -> MaybeT n b
+    mapMaybeT f = MaybeT . f . runMaybeT
 
-instance (Functor m) => Functor (MaybeT m) where
+    instance (Functor m) => Functor (MaybeT m) where
     fmap f = mapMaybeT (fmap (fmap f))
 
-instance (Monad m) => Monad (MaybeT m) where
+    \end{verbatim}
+
+    We can define 
+    \begin{verbatim}
+    instance (Monad m) => Monad (MaybeT m) where
     return = MaybeT . return . Just
     x >>= f = MaybeT $ do
         v <- runMaybeT x
         case v of
             Nothing -> return Nothing
             Just y  -> runMaybeT (f y)
-    fail _ = MaybeT (return Nothing)
 
-instance MonadTrans MaybeT where
+    \end{verbatim}
+    Finally we have
+    \begin{verbatim}
+    instance MonadTrans MaybeT where
     lift = MaybeT . liftM Just
-
-instance (MonadIO m) => MonadIO (MaybeT m) where
+    \end{verbatim}
+    Finally we have
+    \begin{verbatim}
+    instance (MonadIO m) => MonadIO (MaybeT m) where
     liftIO = lift . liftIO
-\end{verbatim}
+    \end{verbatim}
+\end{example}
 
 Monad transformers involves
 the creation of a \textit{stack} of monads,
@@ -644,8 +700,6 @@ For example, the transformer equivalent of State is StateT;
 it adds mutable state to an underlying monad.
 The WriterT monad transformer makes it possible to write data when stacked on top of another monad."
 
-
-A note on ordering!
 "If we need to talk to the outside world, we'll have IO at the base of the stack.
 If we add a ReaderT layer, we give ourselves access to read-only configuration information.
 Add a StateT layer, and we gain global state that we can modify.
@@ -655,37 +709,19 @@ specifying which kinds of effects we want to support."
 Stacking monad transformers is analogous to composing functions.
 If we change the order in which we apply functions, and we then get different results, we are not surprised. So it is with monad transformers, too.
 
-As a small example of stacked monad transformers in action, here is a reworking of the countEntries function we developed earlier. We will modify it to recurse no deeper into a directory tree than a given amount, and to record the maximum depth it reaches.
-In the framework that mtl provides, each monad transformer in the stack makes the API of a lower level available by providing instances of a host of typeclasses. We could follow this pattern, and write a number of boilerplate instances.
-In this case, the only way we can access the underlying State monad's put is through use of lift.
-
-WRITE ON LIFT
-\begin{verbatim}
--- file: ch18/StackStack.hs
-innerPut :: String -> Foo ()
-innerPut = lift . put
-\end{verbatim}
-
-"
-Finally, when we use monads and monad transformers, we can pay an efficiency tax.
-For instance, the State monad carries its state around in a closure.
+Monad transformers are effective,
+and they will not be the largest issue in most programs
+that use them;
+however that is not to say they are perfect.
+Firstly one has to note that, there is an efficiency tax,
+"the State monad carries its state around in a closure.
 Closures might be cheap in a Haskell implementation, but they're not free.
+"\cite{o2008real}
+The next compliant is that we frequently see \textit{boilerplate code},
+i.e. we need to explicity lift useful functions through the stack
+\cite{kammar2013handlers}.
+A final critiscism is that
 "
-\cite{o2008real}
-"
-A fundamental problem with monad transformer stacks is that
-once a particular abstract effect is instantiated,
-the order of effects in the stack becomes concrete,
-and it becomes necessary to explicitly lift operations
-through the stack."
-\cite{kammar2013handlers}
-
-Note that OCaml is impure and doesn't have monad transformers,
-it doesn't need them.
-Why?
-How does this interact with modules composing?
-
-"Monad transformers have an inherent limitation:
 they enforce the static ordering of effect layers and hence statically fixed effect interactions.
 There are practically significant computations that require interleaving of effects.
 ‘Delimited Dynamic Binding’ (ICFP 2006) was first to bring up this point.
@@ -693,3 +729,10 @@ The ‘Extensible Effects’ paper expanded that discussion on new examples.
 Section 5 describes simple and common programming patterns that are particularly
 problematic with monad transformers because the static ordering of effect layers is not flexible.
 "
+
+As a final note on monad transformers,
+we should say that OCaml is impure and does not have monad transformers,
+it doesn't need them.
+Why?
+How does this interact with modules composing?
+

@@ -22,9 +22,9 @@ where $M$ is the monad. The most ubiquitous monad is the list monad
 so let's give a concrete interface where we have list of integers
 \begin{equation}
   \begin{split}
-    map  &:: (int \rightarrow int) \rightarrow List int \rightarrow List int \\
-    unit &:: int \rightarrow List int                                        \\
-    join &:: List (List int) \rightarrow List int
+    map  &:: (int \rightarrow int) \rightarrow List\ int \rightarrow List\ int \\
+    unit &:: int \rightarrow List\ int                                        \\
+    join &:: List\ (List\ int) \rightarrow List\ int
   \end{split}
 \end{equation}
 
@@ -151,4 +151,65 @@ we can chain computations in predictable and understandable ways.
 \subsection{Algebraic Efffects}
 For programmers
 we are not merely playing with delimited continuations (or resumable exceptions),
+
+For a casual understanding,
+we can begin to explain algebraic effects by saying that
+we have effects we can manipulate algebraically; that is to say,
+the interpretation of an expression is
+subject to an operator and its sub-expressions.
+For instance, $a + b$ is interpreted as an operator
+$+$ with its own semantics along with the value of its
+two sub-expressions $a$ and $b$.
+As our first example, consider obtaining input from
+\texttt{stdin} using the operation \texttt{read} where
+\begin{equation}
+    read :: \texttt{()} \rightarrow IO\ String
+\end{equation}
+as a nullary (of zero arguments) operator with no sub-expressions.
+
+We can further our initial understanding with another view
+relating algebraic effects to continuations,
+or rather algebraic effects being given by continuations.
+Whenever an operation is performed we have a continuation
+passed to the handler;
+which the handler uses to "implement" that effect.
+This view also allows us an initial but intuitive
+understanding of why algebraic effects are incompatible with continuations;
+it is not possible to distribute global control flow across several mechanisms.
+
+
+\begin{example}
+    Consider this example of an IO effect,
+    first we define an effect \texttt{IO},
+    this is, in OCaml, similar to defining
+    a new exception type.
+    We then describe two constructors
+    \texttt{Print} and \texttt{Read}
+    of the effect \texttt{IO}.
+    \begin{verbatim}
+        effect IO =
+          | Print : string -> unit
+          | Read : string\end{verbatim}
+    Now to actually have an effect we need to use the primitive \texttt{perform},
+    we construct an effect via \texttt{(Print "Hello world!")}.
+    \begin{verbatim}
+        let print_hello =
+            perform (Print "Hello world!")\end{verbatim}
+    Because OCaml is impure, the handler of this effect looks rather obtuse,
+    however in a pure or lazy language this effect and handler would be necessary.
+    Here it is just an indirection for the sake of an example.
+    \begin{verbatim}
+        let () =
+          try print_hello with
+          | effect (Print s) k -> printf s; continue k\end{verbatim}
+\end{example}
+\subsection{Conclusion}
+
+A lot of the time bind does exactly what you want,
+handlers just force your hand in being explicit
+It should be obvious that monads and algebraic effects
+are not essential for programming,
+or even correct and reliable programming.
+However they are really helpful
+One can perhaps suggest that pure languages are too dogmatic
 

@@ -7,15 +7,20 @@ we need \textit{handlers}\cite{plotkin2009handlers};
 which, informally, deconstruct effects.
 This section will cover these two issues and their use.
 
-We can begin to understand algebraic effects by saying that
-we have effects we can manipulate algebraically;
-that is the interpretation of an expression is
-subject to an operator and its subexpressions.
+For a casual understanding,
+we can begin to explain algebraic effects by saying that
+we have effects we can manipulate algebraically; that is to say,
+the interpretation of an expression is
+subject to an operator and its sub-expressions.
 For instance, $a + b$ is interpreted as an operator
 $+$ with its own semantics along with the value of its
-two subexpressions $a$ and $b$.
-One can consider \texttt{panic}, as a nullary operator
-with no subexpressions.
+two sub-expressions $a$ and $b$.
+As our first example, consider obtaining input from
+\texttt{stdin} using the operation \texttt{read} where
+\begin{equation}
+    read :: \texttt{()} \rightarrow IO\ String
+\end{equation}
+as a nullary (of zero arguments) operator with no sub-expressions.
 
 We can further our initial understanding with another view
 relating algebraic effects to continuations,
@@ -75,9 +80,8 @@ continuations are of a computationally different character
 than these other effects
 \cite{Plotkin:2002dw}\cite{hyland2007combining}.
 
-Let us examine input and output as an algebraic effect first,
-we can begin with the quintessential programming example;
-"Hello world!".
+Let us examine input and output as an algebraic effect in detail,
+we will begin with the quintessential programming example; "Hello world!".
 We will be working in OCaml+effects for this example.\\
 
 \begin{example}
@@ -88,76 +92,52 @@ We will be working in OCaml+effects for this example.\\
     We then describe two constructors
     \texttt{Print} and \texttt{Read}
     of the effect \texttt{IO}.
-
     \begin{verbatim}
         effect IO =
           | Print : string -> unit
-          | Read : string
-    \end{verbatim}
-
+          | Read : string\end{verbatim}
     Now to actually have an effect we need to use the primitive \texttt{perform},
     we construct an effect via \texttt{(Print "Hello world!")}.
-
     \begin{verbatim}
-        let print_hello =
-            perform (Print "Hello world!")
-    \end{verbatim}
-
+        let print_hello () =
+            perform (Print "Hello world!")\end{verbatim}
     Because OCaml is impure, the handler of this effect looks rather obtuse,
     however in a pure or lazy language this effect and handler would be necessary.
     Here it is just an indirection for the sake of an example.
-
     \begin{verbatim}
-        let () =
-          try print_hello with
-          | effect (Print s) k -> printf s; continue k
-    \end{verbatim}
+        let main () =
+          try print_hello () with
+          | effect (Print s) k -> printf s ^ "\n"; continue k\end{verbatim}
 \end{example}
 
-%TODO AE coin flip
-Another example of algebraic effects is binary non-determinism,
-here we simulate a coin flip.
-\begin{example}
-    \begin{verbatim}
-    effect choice =
-        | Choose : bool
-
-    let coin_flip () =
-        if (perform Choose) then
-            Heads
-        else
-            Tails
-
-    try coin_flip () with
-    | effect Choose k -> continue k (Random.bool ())
-    \end{verbatim}
-\end{example}
-
-The core benefits of algebraic effects are
-firstly that composition is simple and pain free;
+Following our first detailed example,
+we should state that there are two core benefits of algebraic effects.
+Firstly, composition of algebraic effects is simple and pain free;
 we will examine this later.
+Secondly they allow a seperation between
+"the expression of an effectful computation from its implementation"
+\cite{dolan2015effective}.
+%TODO Expl more here pls
+This is a powerful tool of modular abstraction,
+for very similar reasons as monads are powerful
+for structuring programs.
+Previously we saw that we could separate the happy path from our error handling,
+it would appear that this separation is even more general with algebraic effects
+and their handlers.
+%TODO explain eff impl seper
+%We can separate an effect from its implementation,
 
-Secondly they allow the programmer to
-"separate the expression of an effectful computation from its implementation."
-They "provide a modular abstraction for expressing effectful computation"\cite{dolan2015effective},
-\cite{dolan2015effective}
-
-We saw a similar benefit with monads,
-in particular we could seperate the happy path from our error handling.
-It would appear that this seperation is even more general with AE
-
-It would appear that algebraic effects are particularly popular
-for systems programming
-\cite{dolan2015effective}
-\cite{dolan2017concurrent}
-\cite{dolaneffectively}
-\cite{Dolan:2017}
-we will try to elucidate why this,
+Finally we should note that
+algebraic effects are particularly popular for systems programming
+\cite{dolan2015effective, dolan2017concurrent, dolaneffectively};
 especially in comparison to monads.
-"In this paper, we make the observation that effect handlers
-can elegantly express particularly difficult programs
-that combine system programming and concurrency without compromising performance."
-\cite{Dolan:2017}
+This is particularly due to performance implications,
+implementing concurrency through algebraic effects
+is comparable to the communicating sequential processes model
+of Go in terms of performance \cite{Dolan:2017}.
+This performance aspect is more striking
+if we consider the efficiency tax of a monad
+transformer stack\cite{o2008real}.
 
 \subsection{Handlers}
 Thus far we have only
@@ -236,6 +216,23 @@ provides us with a natural way to describe
 how computational effects may be combined
 "\cite{plotkin2004computational}.
 
+Another example of algebraic effects is binary non-determinism,
+here we simulate a coin flip.\\
+
+\begin{example}\begin{verbatim}
+
+    effect choice = Choose : bool
+
+    let coin_flip () =
+        if (perform Choose) then
+            Heads
+        else
+            Tails
+
+    try coin_flip () with
+    | effect Choose k -> continue k (Random.bool ())
+    \end{verbatim}
+\end{example}
 Now let us tackle the question of how to actually compose
 algebraic effects.\\
 
@@ -271,6 +268,10 @@ algebraic effects.\\
           | effect Choose k -> continue k (Random.bool ())
     \end{verbatim}
 \end{example}
+
+%TODO restruc comp AE
+Of course having one global handler is neither elegant nor simple,
+so we restructure our example
 
 \subsection{Structuring Programs with Algebraic Effects}
 As we demonstrated monads are rather useful for structuring programs,
@@ -414,3 +415,15 @@ programming
 
 "Moreover, effect handlers allow concurrent programs to be written in direct-style retaining the simplicity of sequential code as opposed to callback-oriented style with either monadic concurrency libraries such as Lwt [8] and Async [5] for OCaml or explicit callbacks."
 \cite{dolaneffectively}
+Finally we should note that
+algebraic effects are particularly popular for systems programming
+\cite{dolan2015effective, dolan2017concurrent, dolaneffectively};
+especially in comparison to monads.
+This is particularly due to performance implications,
+implementing concurrency through algebraic effects
+is comparable to the communicating sequential processes model
+of Go in terms of performance \cite{Dolan:2017}.
+This performance aspect is more striking
+if we consider the efficiency tax of a monad
+transformer stack\cite{o2008real}.
+

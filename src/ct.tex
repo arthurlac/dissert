@@ -220,8 +220,8 @@ Here are two examples of the $\lambda_c$-calculus from
         \item $\eta_A$ is the map $a \rightarrow (\lambda s:S.\langle a,s \rangle)$
         \item $\mu_A$ is the map $f \rightarrow (\lambda s:S.eval(fs))$,
             i.e. $\mu_A(f)$ is the computation that given a store $s$,
-            first computes the pair computation-store $\langle f\prime,s\prime\rangle = fs$
-            and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime s\prime$.
+            first computes the pair computation-store $\langle f\prime,s\prime\rangle = f\ s$
+            and then returns the pair value-store $\langle a,s\prime\prime\rangle = f\prime\ s\prime$.
     \end{itemize}
 \vspace{5mm}
 
