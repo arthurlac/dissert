@@ -1,100 +1,74 @@
 \section{Abridged version}
 
 \subsection{Introduction}
-Not only do they share a history, finitary monads and Lawvere theories
-"describe equivalent categorical encodings of universal algebra"\cite{riehl}.
-These ideas, while fascinating and perplexing,
-are not central to this document;
-we discuss them in this overview for an additional,
-although brief, perspective.
+Let's introduce bindables and resumable exceptions
 
-\subsection{Monads}
-The easiest way to begin understanding monads is by thinking of them
-as a triple of functions with the interface
-\begin{equation}
-  \begin{split}
-    map  &:: (x \rightarrow y) \rightarrow M x \rightarrow M y \\
-    unit &:: x \rightarrow M x                                 \\
-    join &:: M (M x) \rightarrow M x
-  \end{split}
-\end{equation}
-where $M$ is the monad. The most ubiquitous monad is the list monad
-so let's give a concrete interface where we have list of integers
-\begin{equation}
-  \begin{split}
-    map  &:: (int \rightarrow int) \rightarrow List\ int \rightarrow List\ int \\
-    unit &:: int \rightarrow List\ int                                        \\
-    join &:: List\ (List\ int) \rightarrow List\ int
-  \end{split}
-\end{equation}
+\subsection{Bindables}
+Roughly, a bindable is an interface
+is something which takes a value
+and then allows us to describe ways to chain functions
+between bindables of the same type;
+even if the things inside them are not of the same type
 
-However we can create a new function from this triple
+Bindables are defined by two functions
 \begin{align}
-    bind &:: M x \rightarrow (x \rightarrow M y) \rightarrow M y \\
-    bind &\equiv \lambda mx. \lambda f. join(fmap\ f\ mx)
+    bind &:: B\ x \rightarrow (x \rightarrow List\ y) \rightarrow B\ y\\
+    new &:: x \rightarrow B\ x
 \end{align}
-Bind is incredibly useful and perhaps more prominent to a programmer than the triple $(fmap,return,join)$.
-This is because it allows us to chain computations
-one after the other.
-\begin{equation}
-    x\
-    \stackrel{f}{\rightarrow} My
-    \stackrel{g}{\rightarrow} MMz
-    \stackrel{join}{\rightarrow} Mz
-\end{equation}
-\begin{equation}
-    \lambda g.
-    \lambda f.
-    \lambda x.
-    join\ (fmap\ g\ (fmap\ f\ x))
-\end{equation}
-\begin{equation}
-    (fmap\ f\ x) >>= g
-\end{equation}
+The way to read is that $::$ means "is of type",
+the bind function takes two things,
+firstly $B\ x$, which means a bindable of underlying type $x$.
+Then $(x \rightarrow B\ y)$ is a function from type $x$,
+to the type $B\ y$ which a bindable of type $y$
+($y$ could be $x$ but doesn't have to be),
+$x$ being the same type as our bindable.
+The function returns a bindable of type $y$
+You could think of $bind$ as an adapter,
 
-It is convention to use bind as the infix operator "$\bind$".
-Because \texttt{bind} is often found with \texttt{(fmap,join,return)}
-We can reformulate our axioms in terms of bind,
-indeed the axioms are often reformulated this way because it is simpler.
+The new function takes any type $x$ and returns
+a function bindable of with the underlying type $x$.
+
+Let's give a concrete example!
+Foremost example of bindables are lists.
+
 \begin{align}
-    return\ x \bind f &\equiv f x \\
-    m \bind return &\equiv m \\
-    (m \bind f) \bind g &\equiv m \bind (\lambda x.(f\ x \bind g))
+    bind &:: List\ x \rightarrow (x \rightarrow List\ y) \rightarrow List\ y\\
+    new &:: x \rightarrow List\ x
 \end{align}
 
-We should make the distinction that
-a monad in haskell $\neq$ a monad in OCaml $\neq$ a monad in category theory
-At first this is obvious,
-a mathematical construct is obviously different to a programming one,
-however it is different inbetween programming languages too,
-we have different means to express structures in maths/Haskell/OCaml
-thus any non-trivial structure is not really equivalent between these languages.
-(maybe obvs but worth considering)
-
-A concrete example of fmap/bind/join expressed in JavaScript or ECMAScript is
+Now implementing $new$ is pretty easy.
 \begin{verbatim}
-    const arr = [1,2,3,4];
-    const fmap = (f,x) => x.map(f); //Easy in JS for arrays
-    console.log(fmap(x => x + 1, arr));
-    // === Array [2,3,4,5]
-
     //Note we use 'unit' as return is a keyword
-    const unit = x => [x];
-    console.log(unit(1));
+    const new = x => [x];
+    console.log(new(1));
     // === Array [1]
+\end{verbatim}
 
+To define bind we gotta define an auxillary function
+called join first, it takes a list of lists
+and returns a list.
+It basically just un-nests the list given.
+
+\begin{verbatim}
     const arr2 = [[1, 2], [3, 4]];
     const append = (onto, val) => onto.concat(val);
     const join = x => x.reduce(append, []);
     console.log(join(arr2));
     // === Array [1, 2, 3, 4]
-
-    const bind = (x, f) => join(fmap(f,x));
+\end{verbatim}
+Once we have done that, defining bind is pretty simple
+\begin{verbatim}
+    const bind = (x, f) => join(x.map(f));
     const double = x => [x,x];
     console.log(bind(arr1, double));
     // === Array [1, 1, 2, 2, 3, 3, 4, 4]
 \end{verbatim}
 
+Let's fix it to lists of integers just to make life ebeginasy
+\begin{align}
+    bind &:: List\ int \rightarrow (int \rightarrow List\ int) \rightarrow List\ int\\
+    new &:: int \rightarrow List\ int
+\end{align}
 
 Or in OCaml
 \begin{verbatim}
@@ -130,6 +104,9 @@ Then we have
     - : int list = [1; 2; 3; 4]
 \end{verbatim}
 
+Why are bindables so great?
+They get rid of stuff like null-pointer exceptions!
+They short circuit computations
 
 \begin{verbatim}
     result, err := myFunction()
@@ -138,6 +115,14 @@ Then we have
     }
 \end{verbatim}
 
+We should make the distinction that
+a monad in haskell $\neq$ a monad in OCaml $\neq$ a monad in category theory
+At first this is obvious,
+a mathematical construct is obviously different to a programming one,
+however it is different between programming languages too,
+we have different means to express structures in maths/Haskell/OCaml
+thus any non-trivial structure is not really equivalent between these languages.
+(maybe obvs but worth considering)
 Do programming monads need to follow the same rules as category theory monads?
 There is no way for the compiler to check these rules so practically the answer is no,
 however it is wise for monad implementations to obey them so that
@@ -148,7 +133,7 @@ we can chain computations in predictable and understandable ways.
 %Typically we describe our desired result in terms of functions on the monad
 %done one after the other.
 
-\subsection{Algebraic Efffects}
+\subsection{Resumable Exceptions}
 For programmers
 we are not merely playing with delimited continuations (or resumable exceptions),
 

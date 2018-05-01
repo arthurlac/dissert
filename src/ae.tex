@@ -110,52 +110,13 @@ We will be working in OCaml+effects for this example.\\
           | effect (Print s) k -> printf s ^ "\n"; continue k\end{verbatim}
 \end{example}
 
-Following our first detailed example,
-we should state that there are two core benefits of algebraic effects.
-Firstly, composition of algebraic effects is simple and pain free;
-we will examine this later.
-Secondly they allow a seperation between
-"the expression of an effectful computation from its implementation"
-\cite{dolan2015effective}.
-%TODO Expl more here pls
-This is a powerful tool of modular abstraction,
-for very similar reasons as monads are powerful
-for structuring programs.
-Previously we saw that we could separate the happy path from our error handling,
-it would appear that this separation is even more general with algebraic effects
-and their handlers.
-%TODO explain eff impl seper
-%We can separate an effect from its implementation,
-
-Finally we should note that
-algebraic effects are particularly popular for systems programming
-\cite{dolan2015effective, dolan2017concurrent, dolaneffectively};
-especially in comparison to monads.
-This is particularly due to performance implications,
-implementing concurrency through algebraic effects
-is comparable to the communicating sequential processes model
-of Go in terms of performance \cite{Dolan:2017}.
-This performance aspect is more striking
-if we consider the efficiency tax of a monad
-transformer stack\cite{o2008real}.
-
 \subsection{Handlers}
 Thus far we have only
 where operations are constructors of effects
 we also need a dual,
-\textit{handlers} which can be seen as deconstructors of effects
-\cite{}.
+\textit{handlers} which can be seen as deconstructors of effects\cite{Plotkin:2002dw}.
 Handlers were introduced by Plotkin and Pretner\cite{Plotkin:2009dr}
-builds on
-\cite{benton2001exceptional}.
-
 new handling construct generalises the exception-handling construct of Benton and Kennedy. \cite{benton2001exceptional}
-
-"Of the various operations, handle is of a different computational character and,
-although natural, it is not algebraic
-Andrzej Filinski (personal communication) describes handle as a deconstructor,
-whereas the other operations are constructors (of effects)"
-\cite{Plotkin:2002dw}
 
 "present an algebraic treatment of exception handlers and,
 more generally, introduce handlers for other computational effects
@@ -167,13 +128,6 @@ combining, and reasoning about effects, it has not yet accounted for their handl
 The difficulty is that exception handlers, a well-known programming concept,
 fail to be algebraic operations.
 
-Conceptually, algebraic operations and effect handlers are dual:
-the former could be called effect constructors as they give rise to the effects;
-the latter could be called effect deconstructors as they depend on the effects already created.
-
-Filinski’s reflection and reification operations provide general effect constructors
-and deconstructors in the context of layered monads [5]."
-
 "The central new semantic idea is that deconstructing a computation amounts to
 applying to it a unique homomorphism guaranteed by universality.
 The domain of this homomorphism is a free model of the algebraic theory of the effects at hand;
@@ -182,13 +136,26 @@ and it extends a programmer-defined map on values."
 \cite{Plotkin:2009dr}
 
 
-"Plotkin and Pretnar’s handlers for algebraic effects occupy a sweet spot in the design space of abstractions for effectful computation. By separating effect signatures from their implementation, alge- braic effects provide a high degree of modularity, allowing pro- grammers to express effectful programs independently of the con- crete interpretation of their effects. A handler is an interpretation of the effects of an algebraic computation. The handler abstraction adapts well to multiple settings: pure or impure, strict or lazy, static types or dynamic types."
+"Plotkin and Pretnar’s handlers for algebraic effects occupy a sweet spot
+in the design space of abstractions for effectful computation.
+By separating effect signatures from their implementation,
+algebraic effects provide a high degree of modularity,
+allowing programmers to express effectful programs
+independently of the concrete interpretation of their effects.
+A handler is an interpretation of the effects of an algebraic computation.
+The handler abstraction adapts well to multiple settings:
+pure or impure, strict or lazy, static types or dynamic types."
 \cite{kammar2013handlers}
 
-A key benefit of handlers, and hence of algebraic effects,
-is that
-
-Generalised exception handlers. Benton and Kennedy [3] intro- duced the idea of adding a return continuation to exception han- dlers. Their return continuation corresponds exactly to the return clause of an effect handler. Effect handler operation clauses gener- alise exception handler clauses by adding a continuation argument, providing support for arbitrary effects. An operation clause that ig- nores its continuation argument behaves like a standard exception handler clause.
+Generalised exception handlers.
+Benton and Kennedy [3] introduced the idea of adding
+a return continuation to exception handlers.
+Their return continuation corresponds exactly to the return clause of an effect handler.
+Effect handler operation clauses generalise exception handler clauses by adding a continuation argument,
+providing support for arbitrary effects.
+An operation clause that ig nores its continuation argument
+behaves like a standard exception handler clause.
+\cite{kammar2013handlers}
 
 and there is a natural separation between
 their interface (as a set of operations)
@@ -218,7 +185,6 @@ how computational effects may be combined
 
 Another example of algebraic effects is binary non-determinism,
 here we simulate a coin flip.\\
-
 \begin{example}\begin{verbatim}
 
     effect choice = Choose : bool
@@ -239,39 +205,69 @@ algebraic effects.\\
 \begin{example}
     Recall our IO and non-determinism examples,
     we can combine them with ease!
-    \begin{verbatim}
-        effect IO =
-          | Print : string -> unit
-          | Read : string
+\begin{verbatim}
+    effect IO =
+    | Print : string -> unit
+    | Read : string
 
-        effect choice =
-          | Choose : bool
+    effect choice =
+    | Choose : bool
 
-        effect int_state =
-          | Get : int
-          | Set : int -> unit
+    effect int_state =
+    | Get : int
+    | Set : int -> unit
 
-        let incr_maybe_twice () : int =
-          perform (Set ((perform Get) + 1));
-          if (perform Choose)
-          then perform (Set ((perform Get) + 1))
-          else perform (Print "incremented just once");
-          perform Get
-    \end{verbatim}
+    let incr_maybe_twice () : int =
+      perform (Set ((perform Get) + 1));
+      if (perform Choose)
+      then perform (Set ((perform Get) + 1))
+      else perform (Print "incremented just once");
+      perform Get
+\end{verbatim}
     We simply need to add a handler for each effect we incorporate.
-    \begin{verbatim}
-          match incr_maybe_twice () with
-          | result -> result
-          | effect (Put s') k -> (fun s -> continue k () s')
-          | effect Get k -> (fun s -> continue k s s)
-          | effect (Print s) k -> printf s; continue k
-          | effect Choose k -> continue k (Random.bool ())
-    \end{verbatim}
+\begin{verbatim}
+      match incr_maybe_twice () with
+      | result -> result
+      | effect (Put s') k -> (fun s -> continue k () s')
+      | effect Get k -> (fun s -> continue k s s)
+      | effect (Print s) k -> printf s; continue k
+      | effect Choose k -> continue k (Random.bool ())
+
+
+  let run f ~init =
+    let comp =
+      match f () with
+      | x -> (fun s -> (s, x))
+      | effect (Put s') k -> (fun s -> continue k () s')
+      | effect Get k -> (fun s -> continue k s s)
+    in comp init
+\end{verbatim}
 \end{example}
 
-%TODO restruc comp AE
+%TODO FIx EFFECTS EXANPLES!!!!!!!!!!!!
 Of course having one global handler is neither elegant nor simple,
-so we restructure our example
+we are free to handle effects at any point in the call stack,
+consider this example
+\begin{verbatim}
+    let incr_thrice () : int =
+        let incr_aux () =
+            perform Set ((perform Get) + 1);
+            perform Set ((perform Get) + 1);
+            perform Set ((perform Get) + 1)
+        in
+        match incr_aux () with
+        | effect (Put s') k -> (fun s -> continue k () s')
+        | effect Get k -> (fun s -> continue k s s)
+
+    let incrx3_maybe () : int =
+        let aux () =
+            if (perform Choose)
+            then incr_thrice ()
+            else perform_get ()
+        in
+        match aux () with
+        | effect Choose k -> continue k (Random.bool ())
+\end{verbatim}
 
 \subsection{Structuring Programs with Algebraic Effects}
 As we demonstrated monads are rather useful for structuring programs,
@@ -315,109 +311,50 @@ We can immediately see that this implementation is more verbose,
 which is not necessarily desirable;
 however the mechanisms of how this function works
 are more apparent.
+%TODO Ugh pls struct w ae
 
-Next we shall consider an example
-To illustrate the purpose of this function here
-is an example of two variables.
-It generates $2^n$ where $n = 2$
+\subsection{Conclusion}
+There are two core benefits of algebraic effects.
+Firstly, composition of algebraic effects is simple and pain free;
+we will examine this later.
+Secondly they allow a seperation between
+"the expression of an effectful computation from its implementation"
+\cite{dolan2015effective}.
+%TODO Expl more here pls
+This is a powerful tool of modular abstraction,
+for very similar reasons as monads are powerful
+for structuring programs.
+Previously we saw that we could separate the happy path from our error handling,
+it would appear that this separation is even more general with algebraic effects
+and their handlers.
+%TODO explain eff impl seper
+%We can separate an effect from its implementation,
 
-\begin{verbatim}
-    type t =
-        | And   of t * t
-        | Or    of t * t
-        | Not   of t
-        | Var   of var
-        | Const of bool
-    type var = string
-    type ctxt = (var * bool) list
+Finally we should note that
+algebraic effects are particularly popular for systems programming
+\cite{dolan2015effective, dolan2017concurrent, dolaneffectively};
+especially in comparison to monads.
+This is particularly due to performance implications,
+implementing concurrency through algebraic effects
+is comparable to the communicating sequential processes model
+of Go in terms of performance \cite{Dolan:2017}.
+This performance aspect is more striking
+if we consider the efficiency tax of a monad
+transformer stack\cite{o2008real}.
 
-    gen_ctxts ["a";"b"];;
-    - : (string * bool) list list = [
-        [("a", true);  ("b", true)];
-        [("a", true);  ("b", false)];
-        [("a", false); ("b", true)];
-        [("a", false); ("b", false)]
-    ]
-\end{verbatim}
+Algebraic effects may not be as elegant a tool as monads for structuring programs,
+but it is undeniable they are far more composable and more efficient.
+Thus they are more powerful tools for certain effects,
+for example concurrency.
 
-Here is a straightforward implementation
-\begin{verbatim}
-  let gen_ctxts vars =
-    let push ctxt v b = List.map ctxt ~f:(fun x -> (v, b) :: x) in
-    let rec aux vs = match vs with
-      | [] -> []
-      | [v] -> [[v, true]; [v, false]]
-      | v :: vs ->
-        let vs' = aux vs in
-        (push vs' v true) @ (push vs' v false)
-    in aux vars
-\end{verbatim}
-
-\begin{verbatim}
-  let gen_ctxts vars : var list -> (var * bool) list list =
-    let push ctxt v b = List.map ctxt ~f:(fun x -> (v, b) :: x) in
-    let rec aux vs = match vs with
-      | [] -> []
-      | [v] -> [[v, true]; [v, false]]
-      | v :: vs ->
-        let vs' = aux vs in
-        (push vs' v true) @ (push vs' v false)
-    in aux vars
-\end{verbatim}
-Consider the algebraic effect version
-%TODO AE Non-det
-
-\begin{verbatim}
-  let gen_ctxts vars =
-    let push ctxt v b = List.map ctxt ~f:(fun x -> (v, b) :: x) in
-    let rec aux vs = match vs with
-      | [] -> []
-      | [v] -> [[v, true]; [v, false]]
-      | v :: vs ->
-        let vs' = aux vs in
-        let b = perform Choose in
-        push vs' v b
-    in aux vars
-
-    let all_results vars =
-      match gen_ctxts vars with
-      | result -> result
-      | effect Choose k ->
-         (continue k true) @ (continue (Obj.clone_continuation k) false)
-         (* OCaml effects/multicore only supports single-shot
-           continuations. But, we can simulate multi-shot continuations by
-           copying a continuation (using Obj.clone) before invocation. *)
-\end{verbatim}
-
-\subsection{Comparison with Monads}
-Algebraic effects may not be as elegant a tool as monads
-for structuring programs,
-it is undeniable they are far more composable
-and more efficient.
-"
-A fundamental problem with monad transformer stacks is that
-once a particular abstract effect is instantiated,
-the order of effects in the stack becomes concrete,
-and it becomes necessary to explicitly lift operations
-through the stack."
-\cite{kammar2013handlers}
-Monad transformers can quickly become unwieldy when there are lots of effects to manage,
-leading to a temptation in larger programs to combine everything into one coarse-grained state and exception monad.
-\cite{brady2013programming}
-lots of ppl say the monads when composed make effects coarse grained
-and this is ugly
-OCaml is impure but has monads, and soon effects, wen you need them?
-is this the most 'practical' approach?
+%lots of ppl say the monads when composed make effects coarse grained
+%and this is ugly
+%OCaml is impure but has monads, and soon effects, wen you need them?
+%is this the most 'practical' approach?
 algebraic effects are more scalable solution for engineering programs!
 this maybe one of the reasons why they seem to be so popular in systems
 programming
 
-
-"Moreover, effect handlers allow concurrent programs to be written in direct-style retaining the simplicity of sequential code as opposed to callback-oriented style with either monadic concurrency libraries such as Lwt [8] and Async [5] for OCaml or explicit callbacks."
-\cite{dolaneffectively}
-Finally we should note that
-algebraic effects are particularly popular for systems programming
-\cite{dolan2015effective, dolan2017concurrent, dolaneffectively};
 especially in comparison to monads.
 This is particularly due to performance implications,
 implementing concurrency through algebraic effects

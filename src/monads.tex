@@ -628,8 +628,10 @@ monad given as the underlying monad.
 The key function here is $lift$.
 \begin{verbatim}
 class MonadTrans t where
-    -- | Lift a computation from the argument monad to the constructed monad.
+    -- | Lift a computation from the argument monad
+    -- | to the constructed monad.
     lift :: Monad m => m a -> t m a
+
 \end{verbatim}
 
 \begin{example}
@@ -647,25 +649,23 @@ class MonadTrans t where
     all we need is a monad \texttt{m} into which we will
     put a maybe value.
     \begin{verbatim}
-    newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
-    \end{verbatim}
+    newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }\end{verbatim}
 
     We can define \texttt{fmap} via \texttt{mapMaybeT}.
     \begin{verbatim}
-    mapMaybeT :: (m (Maybe a) -> n (Maybe b)) -> MaybeT m a -> MaybeT n b
+    mapMaybeT :: (m (Maybe a) -> n (Maybe b)) ->
+                  MaybeT m a -> MaybeT n b
     mapMaybeT f = MaybeT . f . runMaybeT
 
     instance (Functor m) => Functor (MaybeT m) where
-    fmap f = mapMaybeT (fmap (fmap f))
-    \end{verbatim}
+    fmap f = mapMaybeT (fmap (fmap f))\end{verbatim}
     Next we define return,
     which takes a value wraps it in \texttt{Just},
     applies the target monad return,
     and finally wraps it in \texttt{MaybeT}.
     \begin{verbatim}
     instance (Monad m) => Monad (MaybeT m) where
-    return = MaybeT . return . Just
-    \end{verbatim}
+    return = MaybeT . return . Just\end{verbatim}
 
     Bind extracts the value,
     if it is nothing we wrap that via return.
@@ -676,8 +676,7 @@ class MonadTrans t where
         v <- runMaybeT x
         case v of
             Nothing -> return Nothing
-            Just y  -> runMaybeT (f y)
-    \end{verbatim}
+            Just y  -> runMaybeT (f y)\end{verbatim}
     Finally we define the all important \texttt{lift} function,
     %TODO lift will allow us to...
     \begin{verbatim}
@@ -689,8 +688,7 @@ class MonadTrans t where
     liftM f m1 = do { x1 <- m1; return (f x1) }
 
     -- resulting in
-    lift = MaybeT . liftM Just
-    \end{verbatim}
+    lift = MaybeT . liftM Just\end{verbatim}
     %TODO Example maybe IO
 \end{example}
 
