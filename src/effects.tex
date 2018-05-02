@@ -1,19 +1,11 @@
 \section{What are effects?}
-Firstly, if we are going to assert effects are essential,
-we should define what an effect exactly is.
-
-it is hard to pin down exactly what an effect is,
-giving an example is usually quite easy
-but a generic definition is more elusive
-
-"Haskell purity allows compiler to call only functions whose results are really required to calculate final value of high-level function (i.e., main) - this is called lazy evaluation. It's great thing for pure mathematical computations, but how about I/O actions? Function like:
-
-putStrLn "Press any key to begin formatting"
-can't return any meaningful result value, so how can we ensure that compiler will not omit or reorder its execution?"
+If we are going to assert that effects are necessary
+and that they are difficult to manage we should
+briefly cover why this is.
+Firstly, we shall explore what effects actually are.\\
 
 \begin{example}
-    We can give several categories !!!! of computational effects
-    which illustrate
+    A good place to start is to give several example of effects
     \begin{itemize}
         \item Input/Output
         \item Mutable state
@@ -23,105 +15,140 @@ can't return any meaningful result value, so how can we ensure that compiler wil
     \end{itemize}
 \end{example}
 
-Note that side effects $\subset$ effects,
+Conceptually an \textit{effect} is the semantics of any code
+which is not entirely for deterministically calculating a result for a function.
+We should note that side effects $\subset$ effects,
 for example input/output and mutable states are side effects
 however non-determinism is not.
+The distinction being that a side effect
+has an observable effect or interaction on the "outside world".\\
+
 \begin{definition}
-    An \textit{effect} is
+    A function $f$ is \textit{referentially transparent} if
+    for any functon $g$ which calls $f$,
+    any call of $f$ can be replaced with the value returned by $f$
+    without changing the value returned by $g$.
+
+    An obvious example of non-referentially transparent,
+    or \textit{referentially opaque}, function is
+    \begin{equation}
+        f(x) = \{x := x + 1;\ x\}
+    \end{equation}
+    This returns $x + 1$ but \textbf{also} changes the value of $x$ itself.
+    Note that this implies that $x$ is not a value but a reference to a value;
+    one can never change a value, it is only possible to change
+    what one is referring to. (One can refer to a reference).
+
+    This term originates from analytical philosophy
+    and was introduced by Strachey.
+    Referentially transparency implies that to find
+    "the value of an expression which contains a sub-expression,
+    the only thing we need to know about the sub-expression is its value.
+    Any other features of the sub-expression,
+    such as its internal structure,
+    the number and nature of its components,
+    the order in which they are evaluated or
+    the colour of the ink in which they are written,
+    are irrelevant to the value of the main expression"\cite{strachey2000fundamental}.\\
 \end{definition}
 
 \begin{definition}
-    A \textit{side effect} is
-"a side effect if it modifies some state outside its scope or has an observable interaction with its calling functions or the outside world besides returning a value."CHANGEME
-\cite{hughes1989functional}
+    A \textit{pure} function is one which is both
+    referentially transparent and which has the same semantics
+    before and after the substitution of the function and its value
+    has occurred. Pure functions are said to be free of effects.
+
+    For example,
+    a non-deterministic dice roll function is impure,
+    it does not have the same semantics
+    once a call of the function is replaced by a value.
 \end{definition}
 
-Why do effects make life hard?
-Largely because effects mean we can not employ equational reasoning,
-this makes engineering larger programs more complicated
-A great deal of trouble can happen when something is implicit
-rather than explicit.
+It should be noted that colloquially
+the terms \textit{pure} and \textit{referentially transparent} are not fixed,
+and are up to a point interchangeable when talking to some programmers.
 
-We want to maximise the amount of erroneous programs the type-checker will not except
-Thus if untracked effects are a considerable source of errors then we should
-wish to track them as best as possible.
+Briefly consider \textit{coeffects} as a complication of this discussion.
+Coeffects relate to the interaction of a program and its environment\cite{petricek2014coeffects},
+(informally) consider it an inverse of a side-effect.
+The program $ls$, which lists the files in the present working directory,
+requires coeffects.
+Haskell has an equivalent function $listDirectory$:
+\begin{equation}
+    listDirectory :: FilePath \rightarrow IO\ [FilePath]
+\end{equation}
 
-"Java's checked exceptions are an example of an effect system: the effect kind is throws and the region is the type of the exception being thrown.
-"
+Obviously $ls$ is not referentially transparent,
+it does not have any side-effects however.
+It is definitely not a pure function.
+Thus if we define pure functions to be those
+which are free of effects then this
+implies that coeffects $\subset$ effects.
+Coeffects, while interesting, are out of scope for this document,
+but do serve to show the depth of the topic at hand.
 
-Type and effect systems
-\cite{nielson1999type}
-"an effect system labels each function with its possible effects, so a function type is now written %τ →σ τ′, indicating a function that may have effects delimited by σ."
+Now we have established an intuition for what effects are,
+we will explain why they lead to increased program complexity.
 
-"Gifford and others proposed an effect typing discipline to delimit the scope of computational effects within a program, while Moggi and others proposed monads for much the same purpose. Here we marry effects to monads, uniting two previously separate lines of research. In particular, we show that the type, region, and effect system of Talpin and Jouvelot carries over directly to an analogous system for monads, including a type and effect reconstruction algorithm. The same technique should allow one to transpose any effect system into a corresponding monad system."
-"Effect systems are typically found in strict languages, such as FX [GJLS87] (a variant of Lisp), while monads are typically found in lazy languages, such as Haskell "
-"writing %Tσ τ for a computation that yields a value in τ and may have effects delimited by σ. Now we havethat(τ→σ τ′)†isτ†→Tστ′†."
-\cite{wadler2003marriage}
+The first reason is that impure functions make it more
+difficult to employ equational reasoning.
+Purity is a powerful constraint to have on a function,
+particularly when we want to prove properties of
+our programs\cite{backus2007can}.
 
-\subsection{Referential transparency}
+In a lazy language purity is even more consequential,
+any pure function might be reordered or omitted.
+If the function is not actually pure then this would
+break the semantics of the program.
 
-In essence this means that if we wish to find the value of an expression which contains a sub-expression, the only thing we need to know about the sub-expression is its value. Any other features of the sub-expression, such as its internal structure, the number and nature of its components, the order in which they are evaluated or the colour of the ink in which they are written, are irrelevant to the value of the main expression.
-\cite{strachey2000fundamental}
-
-"
-Moreover, the assignment statement splits program- ming into two worlds. The first world comprises the right sides of assignment statements. This is an orderly world of expressions, a world that has useful algebraic proper- ties (except that those properties are often destroyed by side effects)."
-"
-So far we have discussed the gross size and inflexi- bility of von Neumann languages; another important defect is their lack of useful mathematical properties and the obstacles they present to reasoning about programs. Although a great amount of excellent work has been published on proving facts about programs, yon Neu- mann languages have almost no properties that are helpful in this direction and have many properties that are obstacles (e.g., side effects, aliasing)."
-\cite{backus2007can}
-
-\begin{definition}
-    An \textit{referential transparency} is
-\end{definition}
-WIKI REMOVE ME
-An expression is said to be referentially transparent if it can be replaced with its corresponding value without changing the program's behavior.[1] As a result, evaluating a referentially transparent function gives the same value for same arguments. Such functions are called pure functions. An expression that is not referentially transparent is called referentially opaque.
-\begin{definition}
-    An \textit{referential opacity} is
-\end{definition}
-
-What does it mean to be pure?
-\begin{definition}
-    \textit{Purity} means
-
-
-    In computer programming, a function may be considered a pure function if both of the following statements about the function hold:
-
-The function always evaluates the same result value given the same argument value(s). The function result value cannot depend on any hidden information or state that may change while program execution proceeds or between different executions of the program, nor can it depend on any external input from I/O devices (usually—see below).
-Evaluation of the result does not cause any semantically observable side effect or output, such as mutation of mutable objects or output to I/O devices (usually—see below).
-
-\end{definition}
-
-Relation to lambda calculus and $\beta$-equality
-In a pure language we have $\beta$-equality
-in an impure language 
-
-$\beta$-equality
+There exists a relation between referential transparency and
+the (simply-typed) lambda calculus,
+$\beta$-equality (or $\beta$-reduction) in particular.
 \begin{equation}
 \frac
 {\Gamma, x : T \vdash t\prime : T\prime \quad \Gamma \vdash t : T}
 {\Gamma \vdash (\lambda x.t\prime)t = t\prime[t/x]: T\prime }
 \end{equation}
+Consider $y, z : T$ where $y$ is a base value,
+and $z$ is a function call ($z = \lambda x.t\prime$)
+which returns the base value $y$,
+\begin{align}
+    z\,t &= (\lambda x.t\prime)t \\
+         &= t\prime[t/x]
+\end{align}
+If $z$ is not pure then we do not have $\beta$-equality, i.e.
+\begin{equation}
+    z\,t \neq y
+\end{equation}
+$\beta$-equality is one of the fundamental properties
+of the simply typed lambda calculus.
 
-"Understanding how programs affect their environment is a well studied area: effect systems [13] provide a static analysis of effects and monads [8] provide a unified semantics to different notions of effect. Wadler and Thiemann unify the two approaches [17]"
+The next reason why purity is desirable is that
+a great deal of trouble can happen when something is implicit
+rather than explicit.
+Effects are usually not explicit in type systems,
+this makes engineering and
+maintaining larger programs
+much more complicated.
+Thus if untracked effects are a considerable source of errors then we should
+wish to track them as best as possible.
 
+Effect systems\cite{lucassen1988polymorphic} have been proposed as a solution,
+"an effect system labels each function with its possible effects,
+so a function type is now written $\tau \rightarrow \sigma \tau\prime$,
+indicating a function that may have effects delimited by $\sigma$."
+This method sees mainstream use in Java,
+checked exceptions are an example of an effect system.
+Wadler and Thiemann\cite{wadler2003marriage}
+unify this approach with another we will examine in this document.
 
-Briefly consider coeffects as a complication of this discussion
+The key benefit of type systems is that they allow us to identify erroneous programs,
+we want to maximise the amount of erroneous programs the type-checker will not accept.
+Being able to track and type effects is hugely beneficial.
 
-, i.e. 'ls'.
-$$listDirectory :: FilePath -> IO [FilePath]$$
-This is not referentially transparent really (?)
-but is it an effect?
-coeffects lead to discussions of comonads and algebraic coeffects,
-while interesting this is out of scope
-"Monadic effect systems provide a unified way of tracking effects of computations, but there is no unified mechanism for tracking how computations rely on the environment in which they are executed. This is becoming an important problem for modern software – we need to track where distributed computations run, which resources a program uses and how they use other capabilities of the environment."
-No such unified mechanism exists for tracking the context requirements. We use the term coeffect for such contextual program properties. Notions of context have been previously captured using comonads [14] (the dual of monads) and by languages derived from modal logic [12,9], but these approaches do not capture many useful examples which motivate our work.
+Summarily, we can can not avoid effects so
+we have to ask in what ways can we manage effects?
+What tools do we have as a programmer at our disposal here?
+We will examine two ideas, both originating from category theory,
+which provide us tools for effectful programming.
 
-\cite{coeffects-icalp13}
-\cite{petricek2014coeffects}
-
-
-
-CONC WE NEED EFFECTS BUT THEY ARE TRICKY, SO VERY TRICKY
-We have to ask in what ways can we deal with effects?
-What tools do we have as a programmer at our disposal here????
-Following this we will present two ideas both originating from CT
-which give us tools for effectful programming

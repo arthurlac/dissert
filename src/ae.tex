@@ -82,7 +82,8 @@ than these other effects
 
 Let us examine input and output as an algebraic effect in detail,
 we will begin with the quintessential programming example; "Hello world!".
-We will be working in OCaml+effects for this example.\\
+We will be working in OCaml+effects \cite{ocamlplseff} for this example.
+Using code from \cite{kceff}.\\
 
 \begin{example}
     Consider this example of an IO effect,
@@ -363,4 +364,40 @@ of Go in terms of performance \cite{Dolan:2017}.
 This performance aspect is more striking
 if we consider the efficiency tax of a monad
 transformer stack\cite{o2008real}.
+
+Algebraic effects are currently an
+immature programming language construct
+however have immense potential because of 
+their simplicity and flexibility.
+
+Would suggest automatic handlers,
+which would make the automatic behavuour of bind
+available to algebraic effects
+\begin{verbatim}
+effect Result =
+    | Return : 'a -> ()
+    | Raise  : 'e -> ()
+with default try
+    | effect (Return v) -> Ok v
+    | effect (Raise e) -> Err e
+\end{verbatim}
+Also note that this solves a common issue with
+OCaml, there is no way to return early in a function
+so one often has to hijack the current exception
+system to emulate this behaviour.
+
+Consider that we often see
+\begin{verbatim}
+effect Choose : bool
+let choose () = perform Choose\end{verbatim}
+or similarly
+\begin{verbatim}
+effect Put : t -> unit
+let put v = perform (Put v)
+\end{verbatim}
+Perhaps it would be worthwhile to have this code
+generated via ppx, for example
+\begin{verbatim}
+effect Put : t -> unit [@@deriving fun]
+\end{verbatim}
 
