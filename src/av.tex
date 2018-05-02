@@ -10,6 +10,10 @@ and then allows us to describe ways to chain functions
 between bindables of the same type;
 even if the things inside them are not of the same type
 
+bindables can be built on top of any value,
+even another bindable
+(which is of course built on some other value).
+
 Bindables are defined by two functions
 \begin{align}
     bind &:: B\ x \rightarrow (x \rightarrow List\ y) \rightarrow B\ y\\
@@ -17,19 +21,22 @@ Bindables are defined by two functions
 \end{align}
 The way to read is that $::$ means "is of type",
 the bind function takes two things,
-firstly $B\ x$, which means a bindable of underlying type $x$.
+firstly $B\ x$, which means a bindable of underlying type $x$
+where $x$ can be any type you want.
 Then $(x \rightarrow B\ y)$ is a function from type $x$,
 to the type $B\ y$ which a bindable of type $y$
-($y$ could be $x$ but doesn't have to be),
-$x$ being the same type as our bindable.
+where $y$ is any type
+(and potentially but not necessarily type $x$),
 The function returns a bindable of type $y$
-You could think of $bind$ as an adapter,
+You could think of $bind$ as a converter
+or adapter between different types of bindables.
 
-The new function takes any type $x$ and returns
-a function bindable of with the underlying type $x$.
+The $new$ function takes any type $x$ and
+constructs a bindable on top of the value of type $x$.
 
-Let's give a concrete example!
-Foremost example of bindables are lists.
+Let's give a concrete example,
+the easiest and most ubiquitous example
+of a bindable are lists.
 
 \begin{align}
     bind &:: List\ x \rightarrow (x \rightarrow List\ y) \rightarrow List\ y\\
@@ -44,10 +51,10 @@ Now implementing $new$ is pretty easy.
     // === Array [1]
 \end{verbatim}
 
-To define bind we gotta define an auxillary function
-called join first, it takes a list of lists
-and returns a list.
-It basically just un-nests the list given.
+To define bind we gotta define an auxillary function called join first,
+it takes a list of lists and returns a list.
+It basically just flattens the list given,
+appending each list to the one before it.
 
 \begin{verbatim}
     const arr2 = [[1, 2], [3, 4]];
@@ -64,74 +71,16 @@ Once we have done that, defining bind is pretty simple
     // === Array [1, 1, 2, 2, 3, 3, 4, 4]
 \end{verbatim}
 
-Let's fix it to lists of integers just to make life ebeginasy
-\begin{align}
-    bind &:: List\ int \rightarrow (int \rightarrow List\ int) \rightarrow List\ int\\
-    new &:: int \rightarrow List\ int
-\end{align}
-
-Or in OCaml
-\begin{verbatim}
-    let fmap f x =
-        let rec aux l = match l with
-            | [] -> []
-            | hd :: tl -> (f hd) :: (aux tl)
-        in aux x
-
-    val fmap : ('a -> 'b) -> 'a list -> 'b list
-
-    fmap (fun x -> x + 1) [1;2;3;4];;
-    - : int list = [2; 3; 4; 5]
-\end{verbatim}
-Then we have
-\begin{verbatim}
-    let return x = [x];;
-
-    val return : 'a -> 'a list
-
-    return 1;;
-    - : int list = [1]
-\end{verbatim}
-Then we have
-\begin{verbatim}
-    let rec join ll = match ll with
-        | [] -> []
-        | hd :: tl -> List.append hd (join tl)
-
-    val join : 'a list list -> 'a list
-
-    join [[1;2];[3;4]];;
-    - : int list = [1; 2; 3; 4]
-\end{verbatim}
-
 Why are bindables so great?
 They get rid of stuff like null-pointer exceptions!
-They short circuit computations
-
+They cleverly short circuit computations like \texttt{\&\&}.
+They can get rid of the most common Go idiom:
 \begin{verbatim}
     result, err := myFunction()
     if err != nil {
         return nil, err
     }
 \end{verbatim}
-
-We should make the distinction that
-a monad in haskell $\neq$ a monad in OCaml $\neq$ a monad in category theory
-At first this is obvious,
-a mathematical construct is obviously different to a programming one,
-however it is different between programming languages too,
-we have different means to express structures in maths/Haskell/OCaml
-thus any non-trivial structure is not really equivalent between these languages.
-(maybe obvs but worth considering)
-Do programming monads need to follow the same rules as category theory monads?
-There is no way for the compiler to check these rules so practically the answer is no,
-however it is wise for monad implementations to obey them so that
-we can chain computations in predictable and understandable ways.
-
-%For programmers the most important of the triple is \texttt{fmap},
-%this is because it is our primary way to interact with the monad.
-%Typically we describe our desired result in terms of functions on the monad
-%done one after the other.
 
 \subsection{Resumable Exceptions}
 For programmers

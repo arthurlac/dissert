@@ -82,8 +82,8 @@ than these other effects
 
 Let us examine input and output as an algebraic effect in detail,
 we will begin with the quintessential programming example; "Hello world!".
-We will be working in OCaml+effects \cite{ocamlplseff} for this example.
-Using code from \cite{kceff}.\\
+We will be working in OCaml+effects\cite{ocamlplseff} for this example,
+using code from \cite{kceff}.\\
 
 \begin{example}
     Consider this example of an IO effect,
@@ -112,63 +112,25 @@ Using code from \cite{kceff}.\\
 \end{example}
 
 \subsection{Handlers}
-Thus far we have only
-where operations are constructors of effects
-we also need a dual,
-\textit{handlers} which can be seen as deconstructors of effects\cite{Plotkin:2002dw}.
-Handlers were introduced by Plotkin and Pretner\cite{Plotkin:2009dr}
-new handling construct generalises the exception-handling construct of Benton and Kennedy. \cite{benton2001exceptional}
+Thus far we have only seen how to perform effects,
+we need a mechanism by which to give these operations semantics.
+Where operations are constructors of effects we also need a dual,
+\textit{handlers} can be seen as deconstructors of effects\cite{Plotkin:2002dw}.
 
-"present an algebraic treatment of exception handlers and,
-more generally, introduce handlers for other computational effects
-representable by an algebraic theory"
-"Although the algebraic approach has given ways of constructing,
-combining, and reasoning about effects, it has not yet accounted for their handling.
+Handlers were introduced by Plotkin and Pretner\cite{Plotkin:2009dr},
+the new handling construct generalises the exception-handling
+construct of Benton and Kennedy\cite{benton2001exceptional}.
+The key difference between typical exception handlers
+and algebraic effect handlers is that
+there is a continuation allowing for arbitrary effects to be expressed.
 
-
-The difficulty is that exception handlers, a well-known programming concept,
-fail to be algebraic operations.
-
-"The central new semantic idea is that deconstructing a computation amounts to
-applying to it a unique homomorphism guaranteed by universality.
-The domain of this homomorphism is a free model of the algebraic theory of the effects at hand;
-its range is a programmer-defined model of the algebraic theory;
-and it extends a programmer-defined map on values."
-\cite{Plotkin:2009dr}
-
-
-"Plotkin and Pretnar’s handlers for algebraic effects occupy a sweet spot
-in the design space of abstractions for effectful computation.
-By separating effect signatures from their implementation,
-algebraic effects provide a high degree of modularity,
-allowing programmers to express effectful programs
-independently of the concrete interpretation of their effects.
-A handler is an interpretation of the effects of an algebraic computation.
-The handler abstraction adapts well to multiple settings:
-pure or impure, strict or lazy, static types or dynamic types."
-\cite{kammar2013handlers}
-
-Generalised exception handlers.
-Benton and Kennedy [3] introduced the idea of adding
-a return continuation to exception handlers.
-Their return continuation corresponds exactly to the return clause of an effect handler.
-Effect handler operation clauses generalise exception handler clauses by adding a continuation argument,
-providing support for arbitrary effects.
-An operation clause that ig nores its continuation argument
-behaves like a standard exception handler clause.
-\cite{kammar2013handlers}
-
-and there is a natural separation between
-their interface (as a set of operations)
-and
-their semantics (as a handler)."
-"the signature of the effect operations forms a free algebra which gives rise to a free monad.
-Free monads provide a natural way to give semantics to effects,
-where handlers describe a fold over the algebra of operations.
-Using a more operational perspective,
-we can also view algebraic effects as resumable exceptions
-(or perhaps as a more structured form of delimited continuations)."
-\cite{leijen2017type}
+Handlers present one of the greatest benefits of algebraic effects;
+"by separating effect signatures from their implementation,
+algebraic effects provide a high degree of modularity"\cite{kammar2013handlers}.
+Modularity is always important when engineering software
+and allowing programmers to create an interface between
+the expression of an effectful computation
+and the concrete interpretation of their effects.
 
 \subsection{Composing Algebraic Effects}
 What has become the most evident deficiency of monads is
@@ -400,4 +362,10 @@ generated via ppx, for example
 \begin{verbatim}
 effect Put : t -> unit [@@deriving fun]
 \end{verbatim}
+
+These suggestions are motivated by the fact that
+given a choice between a perfect but inconvenient tool
+and a imperfect but convenient tool
+a programmer will the vast majority of the time choose the latter.
+
 

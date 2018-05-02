@@ -3,12 +3,13 @@
 open Core
 
 module Trie : sig
-    type ('e, 'v) t
 
-    val create   : key :'a list -> data : 'b -> ('a, 'b) t
-    val add      : ('a, 'b) t -> key :'a list -> data : 'b -> ('a, 'b) t
-    val get      : ('a, 'b) t -> key :'a list -> 'b option
-    val is_entry : ('a, 'b) t -> key :'a list -> bool
+type ('a, 'b) t
+
+val create   : key :'a list -> data : 'b -> ('a, 'b) t
+val add      : ('a, 'b) t -> key :'a list -> data : 'b -> ('a, 'b) t
+val get      : ('a, 'b) t -> key :'a list -> 'b option
+val is_entry : ('a, 'b) t -> key :'a list -> bool
 
 end = struct
     type ('e, 'v) t = Trie of 'v option * (('e * ('e, 'v) t) list)
@@ -42,7 +43,8 @@ end = struct
                 | []      -> None
                 | [c]     -> find_child t c >>= val_extract
                 | c :: cs -> bind_search (find_child t c) cs
-        (* Because find child is opt we want to short circuit sometimes *)
+        (* Because find child is opt
+         * we want to short circuit sometimes *)
         and bind_search ot chars = ot >>= search chars
         in search key t
 

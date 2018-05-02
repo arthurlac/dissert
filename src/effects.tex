@@ -122,10 +122,12 @@ If $z$ is not pure then we do not have $\beta$-equality, i.e.
 \end{equation}
 $\beta$-equality is one of the fundamental properties
 of the simply typed lambda calculus.
+Abandoning purity means a departure from
+the roots of functional programming.
 
 The next reason why purity is desirable is that
-a great deal of trouble can happen when something is implicit
-rather than explicit.
+a great deal of trouble can happen when the semantics
+of a program is implicit rather than explicit.
 Effects are usually not explicit in type systems,
 this makes engineering and
 maintaining larger programs
@@ -133,14 +135,14 @@ much more complicated.
 Thus if untracked effects are a considerable source of errors then we should
 wish to track them as best as possible.
 
-Effect systems\cite{lucassen1988polymorphic} have been proposed as a solution,
+Effect systems\cite{jouvelot1991algebraic} have been proposed as a solution,
 "an effect system labels each function with its possible effects,
 so a function type is now written $\tau \rightarrow \sigma \tau\prime$,
-indicating a function that may have effects delimited by $\sigma$."
+indicating a function that may have effects delimited by $\sigma$".
 This method sees mainstream use in Java,
 checked exceptions are an example of an effect system.
 Wadler and Thiemann\cite{wadler2003marriage}
-unify this approach with another we will examine in this document.
+unify this approach with monads, which we will examine in this document.
 
 The key benefit of type systems is that they allow us to identify erroneous programs,
 we want to maximise the amount of erroneous programs the type-checker will not accept.
@@ -151,4 +153,3 @@ we have to ask in what ways can we manage effects?
 What tools do we have as a programmer at our disposal here?
 We will examine two ideas, both originating from category theory,
 which provide us tools for effectful programming.
-
