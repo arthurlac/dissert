@@ -129,10 +129,6 @@ there is a continuation allowing for arbitrary effects to be expressed.
 Handlers present one of the greatest benefits of algebraic effects;
 "by separating effect signatures from their implementation,
 algebraic effects provide a high degree of modularity"\cite{kammar2013handlers}.
-Modularity is always important when engineering software
-and allowing programmers to create an interface between
-the expression of an effectful computation
-and the concrete interpretation of their effects.
 
 \subsection{Composing Algebraic Effects}
 What has become the most evident deficiency of monads is
@@ -376,7 +372,6 @@ I would suggest the introduction of the keyword
 handler for each effect. While still
 allowing the default handlers to be overridden
 on a case by case basis.
-Allowing the handlers to 
 \begin{verbatim}
 effect Result =
     | Return : 'a -> ()

@@ -1,7 +1,7 @@
 \section{Abridged version}
 This document will introduce two concepts,
 bindables and resumable exceptions,
-will try to show that they are useful
+and will try to show that they are useful
 and to an extent equivalent.
 
 \subsection{Bindables}
@@ -22,7 +22,7 @@ to the type $B\ y$ which a bindable of type $y$
 where $y$ is any type
 (and potentially but not necessarily type $x$).
 Having been given those two things,
-$bind$ returns a bindable of type $y$
+$bind$ returns a bindable of type $y$.
 You could think of $bind$ as a converter
 or adapter between bindables,
 even when they are built on different types.
@@ -36,12 +36,10 @@ or a completely different bindable entirely
 
 Let's give a concrete example,
 the easiest and most ubiquitous example of a bindable are lists.
-
 \begin{align}
     bind &:: List\ x \rightarrow (x \rightarrow List\ y) \rightarrow List\ y\\
     new &:: x \rightarrow List\ x
 \end{align}
-
 Now implementing $new$ is pretty easy.
 \begin{verbatim}
     //Note we use 'unit' as return is a keyword
@@ -72,10 +70,12 @@ Once we have done that, defining bind is pretty simple
 
 So these examples illustrate what the functions do,
 but they are not terribly useful.
-Why are bindables so great?
-They get rid of null-pointer exceptions!
-And exceptions in general.
+From these simple pieces we can create much
+more complicated things.
+For example, using bindables we can get get rid of null-pointer exceptions.
+And exceptions in general!
 They cleverly short circuit computations like \texttt{\&\&}.
+They can be used to create state out of immutability.
 They can even replace the most common Go idiom:
 \begin{verbatim}
     result, err := myFunction()
@@ -83,18 +83,32 @@ They can even replace the most common Go idiom:
         return nil, err
     }
 \end{verbatim}
-
-Let us prove
-
-First we need to introduce the \texttt{letbind} operator in JavaScript
-
+Let's explore the last one in detail.
+A result is either an error (of type $y$),
+or a successful computation (of type $x$).
+\begin{equation}
+    Result = Err x | Ok y
+\end{equation}
+We can define bind as
 \begin{verbatim}
+    let bind = (result, fn) => {
+        if (result.isErr()) {
+            return result;
+        } else {
+            return fn(result);
+        }
+    }
+\end{verbatim}
+Now given a bind function we
+\begin{verbatim}
+    myFunction()
 \end{verbatim}
 
 \subsection{Resumable Exceptions}
 A resumable exception is an extension normal exceptions
 and exceptions handlers, except we get a continuation to play with.
-Given this we can implement async/await
+We can implement async/await using resumable exceptions.
+Or concurrency.
 
 \subsection{Conclusion}
 

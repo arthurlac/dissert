@@ -121,7 +121,7 @@ and we have
 It is well accepted that some algorithms and data structures become much more elegant
 and simple when expressed in a functional paradigm\cite{okasaki2005alternatives}.
 Conversely some become much more difficult to express,
-here will be discuss how monads can be effective
+here we will discuss how monads can be effective
 at structuring programs and expressing algorithms.
 
 Firstly one should note that OCaml is non-nullable i.e;
@@ -132,7 +132,7 @@ Tony Hoare refers to the null-pointer as a
 "billion dollar mistake"\cite{bdmistake}.
 In essence it makes programming around edge
 cases much more difficult as one must always
-be proactively on the look out for a null-pointer.
+be proactively on the look-out for a null-pointer.
 Non-nullability, together with monads to structure
 non-nullable data type based computation,
 provide us a much more sensible and practical
@@ -157,8 +157,7 @@ For example here is \texttt{join} for all values:
 
 However from this simple basis we can construct much more complicated programs which we
 will be certain will never have a \textit{NullPointerException}.
-Furthermore the type system will ensure that every that
-every case is handled.
+Furthermore the type system will ensure that every case is handled.
 It will refuse to compile nonsensical code
 which does not account for none whenever it is possible to see none.
 Such an assurance is invaluable in creating correct programs.
@@ -262,11 +261,11 @@ The key idea here is that bind is like a custom control
 flow operator which does smart short circuiting of
 computations.
 
-One could find it easy to argue that monads force one to
-"in effect to write a functional facsimile of an imperative program",
+One could find it easy to argue that monads force one
+"to write a functional facsimile of an imperative program",
 however this example shows clearly this is not the case.
 Bind is a very expressive and powerful tool.
-Monads allow us retain benefits of functional programming
+Monads allow us to retain benefits of functional programming
 and use aspects of imperative languages\cite{PeytonJones:1993}.
 
 In the next example we use the result type,
@@ -324,9 +323,10 @@ for comparison Haskell offers \textit{do notation} for the same end.
     Ok (Job.create name prog args run_at ())
 \end{verbatim}
 In Haskell \texttt{do} is simply syntactic sugar for \texttt{>>=} and \texttt{>>} where
-\begin{equation}
-    \texttt{>> :: M x -> M y -> M y}
-\end{equation}
+\begin{align}
+        \texttt{>>} &:: M x \rightarrow M y \rightarrow M y \\
+    m \texttt{>>} k &\equiv m \bind \lambda x.k
+\end{align}
 i.e. accept the first argument, ignore it and return the second.
 Consider it equivalent to the semi colon operator in an imperative languages.
 \begin{align}
@@ -361,7 +361,7 @@ and keep the necessary logic in a sensible re-usable place.
 
 Finally consider the relation between
 \texttt{(let\%bind,do)} and the Kleisli category of programs.
-Consider how convienent it is for programmers to have a category
+Consider how convenient  it is for programmers to have a category
 of programs where reliable error handling is built in by default.
 
 Imperative programming is undeniably popular,
@@ -596,7 +596,7 @@ For instance, a huge number of programs will need both state and IO,
 hence we need means to combine these effects.
 
 King and Wadler \cite{king1993combining}
-describe how some monads method which operates on monads to yield a combined monad.
+describe a method which operates on monads to yield a combined monad.
 The idea is to add the functionality of one monad to another, underlying, monad.
 
 They present an example of constructing a parser which needs both state
