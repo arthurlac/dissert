@@ -1,13 +1,11 @@
 \section{Abridged version}
 This document will introduce two concepts,
 bindables and resumable exceptions,
-and will try to show that they are useful
-and to an extent equivalent.
+and will try to show that they can do surprising things.
 
 \subsection{Bindables}
 Roughly, a bindable anything which supports an
 interface of two functions $bind$ and $new$.
-Bindables are defined by two functions
 \begin{align}
     bind &:: B\ x \rightarrow (x \rightarrow List\ y) \rightarrow B\ y\\
     new &:: x \rightarrow B\ x
@@ -23,9 +21,7 @@ where $y$ is any type
 (and potentially but not necessarily type $x$).
 Having been given those two things,
 $bind$ returns a bindable of type $y$.
-You could think of $bind$ as a converter
-or adapter between bindables,
-even when they are built on different types.
+You could think of $bind$ as a sequencer between bindables.
 
 The $new$ function takes any value and
 constructs a bindable on top of that value.
@@ -83,13 +79,14 @@ They can even replace the most common Go idiom:
         return nil, err
     }
 \end{verbatim}
-Let's explore the last one in detail.
+
+Let's explore removing exceptions.
+Since Go already does not have exceptions
+we can start with that and show how to improve it even further.
 A result is either an error (of type $y$),
 or a successful computation (of type $x$).
-\begin{equation}
-    Result = Err x | Ok y
-\end{equation}
-We can define bind as
+Having defined that we can create result bindable.
+Here is what bind for result might look like in JS.
 \begin{verbatim}
     let bind = (result, fn) => {
         if (result.isErr()) {
@@ -99,26 +96,107 @@ We can define bind as
         }
     }
 \end{verbatim}
-Now given a bind function we
+Now given a sequence of Go-like computations,
+any of which may fail,
 \begin{verbatim}
-    myFunction()
+    name, err := dbCall(init)
+    if err != nil {
+        return nil, err
+    }
+    ipAddr, err := tableLookUp(name)
+    if err != nil {
+        return nil, err
+    }
+    geoLoc, err := getLoc(name, ipAddr)
+    if err != nil {
+        return nil, err
+    }
+    return create_profile(name, geoLoc)
 \end{verbatim}
+We can rephrase our code using bind,
+assuming that bind is a method of result type objects.
+First we call $new$ on \texttt{init} so we can begin our
+sequence.
+\begin{verbatim}
+    new(init).bind(fun init ->
+        dbCall(init).bind(fun name ->
+            tableLookUp(name).bind(fun ipAddr ->
+                getLoc(name, ipAddr).bind(fun geoLoc ->
+                    return create_profile(name, geoLoc)
+                )
+            )
+        )
+    )
+\end{verbatim}
+As it turns out we ended up with a pyramid of doom and not an improvement.
+But using code (AST) processing tools we can get something much simpler,
+\texttt{letbind} simply rewrites the code below into the code above.
+\begin{verbatim}
+    letbind name := dbCall(init)
+    letbind ipAd := tableLookUp(name)
+    letbind geoL := getLoc(name, ipAddr)
+    return create_profile(name, geoLoc)
+\end{verbatim}
+This code is much simpler and allows us just as much
+safety and expressiveness as the Go code.
 
 \subsection{Resumable Exceptions}
 A resumable exception is an extension normal exceptions
 and exceptions handlers, except we get a continuation to play with.
 We can implement async/await using resumable exceptions.
-Or concurrency.
+Or concurrency. Or as we mentioned, nearly
+anything bindables can do.
+Proving that resumable exceptions can replace normal
+exceptions seems rather tautological,
+as such we will explore stateful computation.
 
-\subsection{Conclusion}
+We firstly need a wrapper function which will
+take an initial state and will play through
+the state as it changes. At no point
+do we mutate the state, we just pass an updated
+state whenever it is requested.
+\begin{verbatim}
+function runState(statefulFn, initState) {
+    let runState = () => try {
+        statefulFn();
+    } with {
+      { type: "Value", value } => (state => (state, value)),
+      { type: "Get", cont } => (curState =>
+          continue(cont, curState)(curState))
+      { type: "Put",   value: newState, cont } => (
+          state => continue(cont)(newState))
+    }
+    runState()(initState);
+}
+\end{verbatim}
+What happens here is that every time we catch something we build up a function,
+for example \texttt{(state => (state, value))} means I will return
+you a function which when given a state will give you back the value
+and the state.
+Similarly \texttt{(state => continue(cont)(newState))}
+says I will continue where I was before and whatever that returns
+is applied to the newState I was just told to use.
+Eventually the initial state is passed in
+and the entire function we built up evaluates.
+This makes it seem like we have mutable state
+where actually we just have different values
+being passed between functions.
 
-A lot of the time bind does exactly what you want,
-handlers just force your hand in being explicit
-It should be obvious that monads and algebraic effects
-are not essential for programming,
-or even correct and reliable programming.
-However they are really helpful
-One can perhaps suggest that pure languages are too dogmatic
+The \texttt{perform} function throws an effect/exception
+which we catch and deal with according to it's type.
+Each time it also gives our handler as continuation
+so we can get back where we were previously.
 
-"When writing a modular program to solve a problem, one first divides the problem into sub- problems, then solves the sub-problems and combines the solutions. The ways in which one can divide up the original problem depend directly on the ways in which one can glue solutions together. Therefore, to increase ones ability to modularise a problem conceptually, one must provide new kinds of glue in the programming language."
-\cite{hughes1989functional}
+Finally we can play through the computation
+using our wrapper function,
+some computation to run,
+and an initial state.
+\begin{verbatim}
+let incrTwice = () => {
+  perform("Set", (perform("Get") + 1));
+  perform("Set", (perform("Get") + 1));
+  return perform("Get");
+}
+
+runState(incrTwice, 0) // === 2
+\end{verbatim}
