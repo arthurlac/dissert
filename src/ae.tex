@@ -246,7 +246,6 @@ we will now explore whether an algebraic effect implementation
 \end{verbatim}
 
 Contrast this with an algebraic effect implementation
-
 \begin{verbatim}
   effect exception = Exn
 
@@ -272,14 +271,20 @@ Code which is hard to understand has a high burden.
 This code has the benefit of being direct, that said
 it comes at the cost of explicit data flow.
 
-
-Leijen\cite{leijen2017structured} establish that
+Leijen\cite{leijen2017structured} established that
 asynchrony, most common in EcmaScript (best known as JavaScript),
 can be expressed via algebraic effects.
-For example, web servers written in JavaScript us- ing NodeJS are highly asynchronous and without language support the resulting programs are difficult to write and de- bug due to excessive callbacks (e.g. the so-called “pyramid of doom”). However, extending a language with async-await is non-trivial, both in terms of semantics, as well as compila- tion complexity where async methods need to be translated into state-machines to simulate co-routine behavior [4].
-Again, algebraic effect handlers generalize naturally over this pattern. In contrast to the earlier examples we can generally not implement this directly in our language but need to use primitives of the host system. For concreteness, we assume NodeJS as our host with a primitive to call readline:
+Previously expressing asynchrony via callbacks
+lead to programs which were difficult to both write and debug,
+leading to the notion of the “pyramid of doom” or
+"callback-hell" when code was poorly structured.
+Async await syntax has been found as solution
+however asynchrony is well expressed through algebraic effects,
+perhaps it is worth reflecting on an alternate world
+were JS went with algebraic effects.
 
-Consider this psuedo JavaScript example for algebraic effects
+This is typically how one might see an asynchronous
+computation in JS:
 \begin{verbatim}
 function resolveAfter2Seconds() {
   return new Promise(resolve => {
@@ -296,27 +301,38 @@ async function asyncCall() {
   // expected output: "resolved"
 }
 \end{verbatim}
-(which also incorporates a proposal for pattern matching \cite{jspmatch})
+Compare this with a psuedo JavaScript example for algebraic effects
+(which also incorporates a proposal for pattern matching \cite{jspmatch}).
 \begin{verbatim}
 function algebraicEffectCall() {
-    result = defaultVal => try { perform(new Promise(resolve => {
-        setTimeout(() => {resolve('resolved'); }, 2000);
-      }));
+    let tries = 0;
+    let asyncCall = () = try {
+        perform(new Promise(resolve => {
+            setTimeout(() => {resolve('resolved'); }, 2000);
+        }));
+        asynCall();
+      ));
     } with (promise) {
-      { state: "fulfilled", value: output } => output,
-      { state: "rejected",  value: err    } => {
+      { state: "fulfilled", value: output       } => output,
+      { state: "rejected",  value: err,    cont } => {
           console.log(err);
-          return defaultVal;
+          tries++;
+          if tries > 3 {
+              return defaultVal;
+          } else {
+              // Try again
+              continue cont;
+          }
       }
     }
 }
 \end{verbatim}
 It goes without saying that this example is more verbose than the current state of async/await,
-it is much more expressively powerful.
+however it is much more expressively powerful.
+In this example we implement a retry mechanism and specify a default value return option.
 It is also worth noting \texttt{async/await} syntax is the result of several years of
-streamlining and programming language design.
-JS 
-
+streamlining and programming language design,
+as such it is expected to be much more polished.
 
 \subsection{Conclusion}
 There are two core benefits of algebraic effects.
