@@ -1,7 +1,6 @@
 \section{What are effects?}
 If we are going to assert that effects are necessary
-and that they are difficult to manage we should
-briefly cover why this is.
+and difficult to manage we should explain why this is.
 Firstly, we shall explore what effects actually are.\\
 
 \begin{example}
@@ -15,9 +14,9 @@ Firstly, we shall explore what effects actually are.\\
     \end{itemize}
 \end{example}
 
-Conceptually an \textit{effect} is the semantics of any code
+Conceptually, programmers understand an \textit{effect} to be the semantics of any code
 which is not entirely for deterministically calculating a result for a function.
-We should note that side effects $\subset$ effects,
+We should note that side-effects are a subset of effects,
 for example input/output and mutable states are side effects
 however non-determinism is not.
 The distinction being that a side effect
@@ -83,7 +82,7 @@ it does not have any side-effects however.
 It is definitely not a pure function.
 Thus if we define pure functions to be those
 which are free of effects then this
-implies that coeffects $\subset$ effects.
+implies that coeffects are a subset of effects.
 Coeffects, while interesting, are out of scope for this document,
 but do serve to show the depth of the topic at hand.
 
@@ -144,12 +143,13 @@ checked exceptions are an example of an effect system.
 Wadler and Thiemann\cite{wadler2003marriage}
 unify this approach with monads, which we will examine in this document.
 
-The key benefit of type systems is that they allow us to identify erroneous programs,
+The key benefit of type systems is that they allow us to identify erroneous programs
+systematically,
 we want to maximise the amount of erroneous programs the type-checker will not accept.
 Being able to track and type effects is hugely beneficial.
 
 Summarily, we can can not avoid effects so
 we have to ask in what ways can we manage effects?
-What tools do we have as a programmer at our disposal here?
+What tools do we have as a programmer at our disposal?
 We will examine two ideas, both originating from category theory,
 which provide us tools for effectful programming.

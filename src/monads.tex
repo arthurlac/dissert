@@ -118,23 +118,28 @@ and we have
 \end{equation}
 
 \subsection{Monads for Structuring Programs}
-In this section I will illustrate how effective monads are when used to structure programs.
+It is well accepted that some algorithms and data structures become much more elegant
+and simple when expressed in a functional paradigm\cite{okasaki2005alternatives}.
+Conversely some become much more difficult to express,
+here will be discuss how monads can be effective
+at structuring programs and expressing algorithms.
 
-It is well accepted that some algorithms become much more elegant
-and simple when expressed in a functional paradigm
-
-Firstly one should note that OCaml has non-nullable types
-i.e; one will never see null or nil where one is expecting an
+Firstly one should note that OCaml is non-nullable i.e;
+one will never see null or nil where one is expecting an
 int or a binary tree or anything else.
 Null values are always explicit.
+Tony Hoare refers to the null-pointer as a
+"billion dollar mistake"\cite{bdmistake}.
+In essence it makes programming around edge
+cases much more difficult as one must always
+be proactively on the look out for a null-pointer.
+Non-nullability, together with monads to structure
+non-nullable data type based computation,
+provide us a much more sensible and practical
+approach.
+
 The canonical representation of null is the None variant.
 Monads can be used to succinctly and expressively structure computation with the option type.
-%TODO Elucidate non-nullable types
-%TODO Explain maybe
-%Why is this?
-%Why do we need monads to this?
-%What do other languages do?
-
 \begin{verbatim}
   type 'a option = Some 'a | None
   val return : 'a -> 'a option
@@ -152,9 +157,10 @@ For example here is \texttt{join} for all values:
 
 However from this simple basis we can construct much more complicated programs which we
 will be certain will never have a \textit{NullPointerException}.
-Furthermore the type system will ensure 
-It will refuse to compile nonsensical code which does not account for none
-wherever it is possible to see none.
+Furthermore the type system will ensure that every that
+every case is handled.
+It will refuse to compile nonsensical code
+which does not account for none whenever it is possible to see none.
 Such an assurance is invaluable in creating correct programs.
 Here it's important to note that the effect is the \textit{NullPointerException};
 we deal with it much more cleanly and effectively 100\% of the time using monads.
@@ -178,7 +184,7 @@ The root of the trie represents the empty string.
 Two auxiliary functions \texttt{find\_child} and \texttt{val\_extract}
 are used in the search code; \texttt{val\_extract}
 simply returns the first value in a pair,
-find child searchs the list of children returning
+find child searches the list of children returning
 the node with the matching character given;
 that is only should that child exists.
 
@@ -252,11 +258,20 @@ for the happy case but deal with the error case at every step.
     in search key t
 \end{verbatim}
 
+The key idea here is that bind is like a custom control
+flow operator which does smart short circuiting of
+computations.
 
-%TODO Pls explain why none is so great pls
+One could find it easy to argue that monads force one to
+"in effect to write a functional facsimile of an imperative program",
+however this example shows clearly this is not the case.
+Bind is a very expressive and powerful tool.
+Monads allow us retain benefits of functional programming
+and use aspects of imperative languages\cite{PeytonJones:1993}.
 
-The result type is similar to the option type, however we use an extra type
-parameter for the unhappy case, essentially the result type encapsulates 
+In the next example we use the result type,
+which is similar to the option type, however we use an extra type
+parameter for the "unhappy" case. Essentially the result type encapsulates
 either an error or a correct computation result. The result monad
 corresponds to a generalisation of the exception monad presented by Wadler \cite{wadler1995monads}.
 
@@ -333,14 +348,14 @@ Firstly a key being missing from our list
       | Some v -> Ok v
 \end{verbatim}
 Secondly a more complicated value which we have to parse;
-the parsing of which can fail
+the parsing of which can fail.
 \begin{verbatim}
     let%bind run_at = (find "run_at" >>= parse_run_at) in
 \end{verbatim}
 The key point here is when we have an error we want to fail
 loudly and give as much information as possible about why we failed.
-Furthermore, we don't want to take care of that in this function
-we don't want to put that logic here
+Furthermore, we don't want to take care of that in this function,
+it would make much more sense to put that logic somewhere else.
 Monads allow us to sequence this error handling
 and keep the necessary logic in a sensible re-usable place.
 
@@ -351,6 +366,79 @@ of programs where reliable error handling is built in by default.
 %TODO bind relation to kleisli cat
 %Can we consider bind as a morphism between two objects in the Kleisli Category?
 
+Imperative programming is undeniably popular,
+and much closer to how computers physically work than functional programming.
+
+
+
+There is a bridge to be crossed between functional and imperative programming;
+monads have been concretely shown to be an effective method of replicating
+imperative style and retaining benefits of purity \cite{PeytonJones:1993}.
+
+These examples clearly illustrate how useful monads can be for structuring a program,
+however the importance and necessity of monads is that for pure functional languages
+to be actually useful we require effects. Monads give us means to achieve that.
+In this section we will prove the inverse,
+monads are good for imperative programming
+and imperative programmers have monad-like features
+In this section we will argue that monads are applicable
+in even imperative languages.
+
+
+
+
+In the Go programming language one will frequently see this idiom
+\begin{verbatim}
+    result, err := myFunction()
+    if err != nil {
+        return nil, err
+    }
+\end{verbatim}
+
+Go does not have exceptions,
+so we must deal with errors inbetween function calls.
+This is great in that it means the programmer can not
+ignore errors, (or at least not accidentally ignore an error).
+Consider our error handling example;
+in Go this might be much more verbose
+and perhaps painfully explicit.
+
+\begin{verbatim}
+    name, err := findName(la)
+    if err != nil {
+        return nil, err
+    }
+    prog, err := findProg(la)
+    if err != nil {
+        return nil, err
+    }
+    etc...
+    job.Create(name, prog, args, run_at)
+\end{verbatim}
+
+One can easily see the relation to the result monad which we have demonstrated.
+Of course one would probably attempt to structure the program differently in Go;
+however the OCaml implementation is undeniably straightforward
+and error resistant, while providing useful error messages.
+This reiterates the case that monads are effective tools
+for constructing correct programs;
+whilst still being concise and expressive!
+
+Consider the Java programming language having checked exceptions,
+i.e. every function that throws an exception must have a handler
+at some point in the call stack.
+We can consider this, in some ways, a slight improvement
+over Go however one could argue we do not have as neat a solution
+as the result monad.
+
+We need a balance between explicit and implicit data flow.
+"It is with regard to modularity that explicit data flow becomes both a blessing and a curse.
+On the one hand, it is the ultimate in modularity.
+All data in and all data out are rendered manifest and accessible, providing a maximum of flexibility. On the other hand, it is the nadir of modularity. The essence of an algorithm can become buried under the plumbing required to carry data from its point of creation to its point of use"
+\cite{wadler1995monads}.
+In this section we have shown that bind is ideal plumbing
+for many everyday programming problems;
+a lot of the time bind does exactly what you want.
 
 \subsection{State Monad Example}
 In this section we will illustrate how closely
@@ -464,8 +552,12 @@ This is indeed equivalent to our previous
 definition of \texttt{join}.
 
 We have defined the triple,
-one should ask how to actually do something useful;
-we shall consider the example of a stack from \cite{lipovaca2011learn}.
+now one should ask how to actually do something useful.
+It is worth saying this code is not the easiest to follow,
+however we can make stateful computations from these pieces.
+And we can do so in a much more simple manner than the
+pieces individually would suggest.
+We shall consider the example of a stack from \cite{lipovaca2011learn}.
 \begin{verbatim}
 type Stack = [Int]
 
@@ -497,84 +589,6 @@ stackManip stack = let
 ghci> stackManip [5,8,2,1]
 (5,[8,2,1])
 \end{verbatim}
-
-\subsection{Monads for Imperative Programming}
-Imperative programming is undeniably popular,
-and much closer to how computers physically work than functional programming.
-There is a bridge to be crossed between functional and imperative programming;
-monads have been concretely shown to be an effective method of replicating
-imperative style and retaining benefits of purity \cite{PeytonJones:1993}.
-%TODO ins trans phrase here
-These examples clearly illustrate how useful monads can be for structuring a program,
-however the importance and necessity of monads is that for pure functional languages
-to be actually useful we require effects. Monads give us means to achieve that.
-In this section we will prove the inverse,
-monads are good for imperative programming
-and imperative programmers have monad-like features
-%TODO ins trans phrase here
-In this section we will argue that monads are applicable
-in even imperative languages.
-
-In the Go programming language one will frequently see this idiom
-\begin{verbatim}
-    result, err := myFunction()
-    if err != nil {
-        return nil, err
-    }
-\end{verbatim}
-
-Go does not have exceptions,
-so we must deal with errors inbetween function calls.
-This is great in that it means the programmer can not
-ignore errors, (or at least accidentally ignore an error).
-Consider our error handling example;
-in Go this might be much more verbose
-and perhaps painfully explicit.
-
-\begin{verbatim}
-    name, err := findName(la)
-    if err != nil {
-        return nil, err
-    }
-    prog, err := findProg(la)
-    if err != nil {
-        return nil, err
-    }
-    etc...
-    job.Create(name, prog, args, run_at)
-\end{verbatim}
-
-One can easily see the relation to the result monad which we have demonstrated.
-Of course one would probably attempt to structure the program differently in Go;
-however the OCaml implementation is undeniably straightforward
-and error resistant, while providing useful error messages.
-This reiterates the case that monads are effective tools
-for constructing correct programs;
-whilst still being concise and expressive!
-
-Consider the Java programming language having checked exceptions,
-i.e. every function that throws an exception must have a handler
-at some point in the call stack.
-We can consider this, in some ways, a slight improvement
-over Go however one could argue we do not have as neat a solution
-as monads give us.
-%TODO Why? pls more detail
-
-We need a balance between explicit and implicit data flow
-\cite{wadler1995monads}
-"It is with regard to modularity that explicit data flow becomes both a blessing and a curse.
-On the one hand, it is the ultimate in modularity.
-All data in and all data out are rendered manifest and accessible, providing a maximum of flexibility. On the other hand, it is the nadir of modularity. The essence of an algorithm can become buried under the plumbing required to carry data from its point of creation to its point of use"
-\cite{wadler1995monads}.
-A lot of the time bind does exactly what you want.
-%TODO FIn here!
-
-Indeed there it could be easy to argue that monads "force
-one in effect to write a functional facsimile of an imperative program",
-however there is a clear case that monads empower programmers
-to retain benefits of functional programming and use aspects of imperative languages\cite{PeytonJones:1993},
-%TODO rephrase
-the proposition being that monads are akin to defining custom control flow operators.
 
 \subsection{Monad Transformers}
 The elephant in the room, when it comes to monads, is their composition.
@@ -684,17 +698,15 @@ class MonadTrans t where
     %TODO Example maybe IO
 \end{example}
 
-%TODO Better phrasing
 We have seen that we can combine monads,
 using a monad transformer which takes one monad
 and produces another;
-naturally this leads us to potentially
+naturally this suggests
 having another monad transformer which we can input
 a combined monad into.
-Monad transformers involves
-the creation of a \textit{stack} of monads,
-this is a generic method of combining monads
-such that we can combine the effects we need.
+This process creates a \textit{stack} of monads,
+describing a generic method of combining monads
+such that we have access to all the effects we need.
 
 Monad transformers are effective,
 and they will not be the largest issue in most programs
@@ -709,17 +721,15 @@ i.e. we need to explicitly lift useful functions through the stack
 \cite{kammar2013handlers}.
 A final criticism is that transformers exert inflexibility on implementations
 due to requiring a static ordering of effects.
-%TODO Cite static ordering
 
 As a final note on monad transformers,
 we should say that OCaml is impure and does not typically have monad transformers,
 it doesn't need them.
-This means OCaml can have combine monads, but it is a choice,
+This means OCaml can have combined monads,
+but it is a choice not a necessity,
 which frees us from a lot of the criticisms that monad transformers have.
-Of course there remains the cost of unpredictable effects,
-that said OCaml is typically pure by convention so one has to ask
+Of course there is the loss of purity, and expressing a monad
+transformer stack in OCaml will likely be more difficult than in Haskell.
+That said OCaml is typically pure by convention so one has to ask
 what is the cost of complete purity?
-%TODO
-%Why?
-%How does this interact with modules composing?
 
