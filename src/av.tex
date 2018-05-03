@@ -1,19 +1,12 @@
 \section{Abridged version}
-
-\subsection{Introduction}
-Let's introduce bindables and resumable exceptions
+This document will introduce two concepts,
+bindables and resumable exceptions,
+will try to show that they are useful
+and to an extent equivalent.
 
 \subsection{Bindables}
-Roughly, a bindable is an interface
-is something which takes a value
-and then allows us to describe ways to chain functions
-between bindables of the same type;
-even if the things inside them are not of the same type
-
-bindables can be built on top of any value,
-even another bindable
-(which is of course built on some other value).
-
+Roughly, a bindable anything which supports an
+interface of two functions $bind$ and $new$.
 Bindables are defined by two functions
 \begin{align}
     bind &:: B\ x \rightarrow (x \rightarrow List\ y) \rightarrow B\ y\\
@@ -21,22 +14,28 @@ Bindables are defined by two functions
 \end{align}
 The way to read is that $::$ means "is of type",
 the bind function takes two things,
-firstly $B\ x$, which means a bindable of underlying type $x$
+firstly $B\ x$, which means any bindable of underlying type $x$
 where $x$ can be any type you want.
-Then $(x \rightarrow B\ y)$ is a function from type $x$,
+Then it takes $(x \rightarrow B\ y)$ which
+is a function taking type $x$,
 to the type $B\ y$ which a bindable of type $y$
 where $y$ is any type
-(and potentially but not necessarily type $x$),
-The function returns a bindable of type $y$
+(and potentially but not necessarily type $x$).
+Having been given those two things,
+$bind$ returns a bindable of type $y$
 You could think of $bind$ as a converter
-or adapter between different types of bindables.
+or adapter between bindables,
+even when they are built on different types.
 
-The $new$ function takes any type $x$ and
-constructs a bindable on top of the value of type $x$.
+The $new$ function takes any value and
+constructs a bindable on top of that value.
+Bindables can be built on top of any value,
+even a bindable of the same type
+or a completely different bindable entirely
+(which is of course built on some other value).
 
 Let's give a concrete example,
-the easiest and most ubiquitous example
-of a bindable are lists.
+the easiest and most ubiquitous example of a bindable are lists.
 
 \begin{align}
     bind &:: List\ x \rightarrow (x \rightarrow List\ y) \rightarrow List\ y\\
@@ -66,15 +65,18 @@ appending each list to the one before it.
 Once we have done that, defining bind is pretty simple
 \begin{verbatim}
     const bind = (x, f) => join(x.map(f));
-    const double = x => [x,x];
-    console.log(bind(arr1, double));
-    // === Array [1, 1, 2, 2, 3, 3, 4, 4]
+    const sqrtButKeep = x => [x, x*x];
+    console.log(bind([2, 9, 49], double));
+    // === Array [2, 4, 9, 81, 49, 2401]
 \end{verbatim}
 
+So these examples illustrate what the functions do,
+but they are not terribly useful.
 Why are bindables so great?
-They get rid of stuff like null-pointer exceptions!
+They get rid of null-pointer exceptions!
+And exceptions in general.
 They cleverly short circuit computations like \texttt{\&\&}.
-They can get rid of the most common Go idiom:
+They can even replace the most common Go idiom:
 \begin{verbatim}
     result, err := myFunction()
     if err != nil {
@@ -82,7 +84,11 @@ They can get rid of the most common Go idiom:
     }
 \end{verbatim}
 
+Let us prove
+
 \subsection{Resumable Exceptions}
+A resumable exception is an extension of
+exceptions in 
 For programmers
 we are not merely playing with delimited continuations (or resumable exceptions),
 

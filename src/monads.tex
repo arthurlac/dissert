@@ -59,10 +59,10 @@ we can chain computations in predictable and understandable ways.
 %this is because it is our primary way to interact with the monad.
 %Typically we describe our desired result in terms of functions on the monad
 %done one after the other.
-However we can create a new function from this triple
+The next step for programmers is to create a new function from this triple
 \begin{align}
     bind &:: M x \rightarrow (x \rightarrow M y) \rightarrow M y \\
-    bind &\equiv \lambda mx. \lambda f. join(fmap\ f\ mx)
+    bind &\equiv \lambda x. \lambda f. join(fmap\ f\ x)
 \end{align}
 Bind is incredibly useful and perhaps more prominent
 to a programmer than the triple $(fmap,return,join)$.
@@ -93,9 +93,6 @@ and furthermore so can \texttt{fmap} (with \texttt{return}).
 \begin{equation}
     fmap\ f\ x \equiv (return\ x) \bind f
 \end{equation}
-
-%TODO bind relation to kleisli cat
-Can we consider bind as a morphism between two objects in the Kleisli Category?
 
 Because \texttt{bind} is often found with \texttt{(fmap,join,return)},
 we can reformulate our axioms in terms of bind;
@@ -239,10 +236,10 @@ values, for example ("in", 4).
 
 In the search code t is the trie, key is a list of characters over which
 we iterate the search function. For each character we call find child on
-the current node. Find child, if succesful, will return the next node
+the current node. Find child, if successful, will return the next node
 upon which we continue the search with the remaining characters. Once we
 are at the last character we know to try and extract the value from the end
-node. The key point here is that using bind allows us to succintly only code
+node. The key point here is that using bind allows us to succinctly only code
 for the happy case but deal with the error case at every step.
 
 \begin{verbatim}
@@ -254,6 +251,9 @@ for the happy case but deal with the error case at every step.
     and bind_search ot chars = ot >>= search chars
     in search key t
 \end{verbatim}
+
+
+%TODO Pls explain why none is so great pls
 
 The result type is similar to the option type, however we use an extra type
 parameter for the unhappy case, essentially the result type encapsulates 
@@ -267,8 +267,8 @@ corresponds to a generalisation of the exception monad presented by Wadler \cite
           -> ('b, 'e) result
 \end{verbatim}
 
-In this example we have a list assocation which is a list of pairs, in this case both
-items in the pairs are strings.
+In this example we have a list association which is a list of pairs,
+in this case both items in the pairs are strings.
 
 \begin{verbatim}
   let list_assoc_to_job la =
@@ -284,16 +284,16 @@ items in the pairs are strings.
     ))))
 \end{verbatim}
 
-Bind is used to succintly short circuit a computation when a value can not be
+Bind is used to succinctly short circuit a computation when a value can not be
 correctly obtained. As such this allows the program to be structured neatly to return
 an error with precise information for which key could not be found or which value could
 not be parsed. The result monad is very similar to the option monad. It would be interesting
 to examine whether algebraic effects can be used to structure a program in a similar manner.
 
-Typically programming languages allow the elison of the anonymous function on the right hand side
+Typically programming languages allow the elision of the anonymous function on the right hand side
 of the bind to simply introduce the binding into the environment;
 in this case OCaml ppx extension points are used in the form \textit{let\%bind}.
-This is largely just a programmer convienence,
+This is largely just a programmer convenience,
 for comparison Haskell offers \textit{do notation} for the same end.
 
 \begin{verbatim}
@@ -308,27 +308,12 @@ for comparison Haskell offers \textit{do notation} for the same end.
     let%bind run_at = (find "run_at" >>= parse_run_at) in
     Ok (Job.create name prog args run_at ())
 \end{verbatim}
-Is equivalent to
-\begin{verbatim}
-  let list_assoc_to_job la =
-    let find k = match List.Assoc.find la k with
-      | None -> Error (Err.missing_key k)
-      | Some v -> Ok v
-    in
-    find "name"   >>=                  (fun name   ->
-    find "prog"   >>=                  (fun prog   ->
-    find "args"   >>= parse_args   >>= (fun args   ->
-    find "run_at" >>= parse_run_at >>= (fun run_at ->
-      Ok (Job.create name prog args run_at ())
-    ))))
-\end{verbatim}
-
 In Haskell \texttt{do} is simply syntactic sugar for \texttt{>>=} and \texttt{>>} where
 \begin{equation}
     \texttt{>> :: M x -> M y -> M y}
 \end{equation}
-i.e. do first and ignore the result and then do the second.
-Consider it equivalent to the semi colon operator in imperative languages.
+i.e. accept the first argument, ignore it and return the second.
+Consider it equivalent to the semi colon operator in an imperative languages.
 \begin{align}
     \texttt{do}\ \{ x;\ \texttt{<stmts>} \}
     &\equiv x \texttt{ >> do \{<stmts>\}}
@@ -363,6 +348,9 @@ Finally consider the relation between
 \texttt{(let\%bind,do)} and the Kleisli category of programs.
 Consider how convienent it is for programmers to have a category
 of programs where reliable error handling is built in by default.
+%TODO bind relation to kleisli cat
+%Can we consider bind as a morphism between two objects in the Kleisli Category?
+
 
 \subsection{State Monad Example}
 In this section we will illustrate how closely
@@ -523,9 +511,9 @@ to be actually useful we require effects. Monads give us means to achieve that.
 In this section we will prove the inverse,
 monads are good for imperative programming
 and imperative programmers have monad-like features
-
-In this section we will argue that monads are sometimes better
-at managing effects than imperative language counterparts.
+%TODO ins trans phrase here
+In this section we will argue that monads are applicable
+in even imperative languages.
 
 In the Go programming language one will frequently see this idiom
 \begin{verbatim}
@@ -570,14 +558,16 @@ at some point in the call stack.
 We can consider this, in some ways, a slight improvement
 over Go however one could argue we do not have as neat a solution
 as monads give us.
+%TODO Why? pls more detail
 
 We need a balance between explicit and implicit data flow
 \cite{wadler1995monads}
 "It is with regard to modularity that explicit data flow becomes both a blessing and a curse.
 On the one hand, it is the ultimate in modularity.
 All data in and all data out are rendered manifest and accessible, providing a maximum of flexibility. On the other hand, it is the nadir of modularity. The essence of an algorithm can become buried under the plumbing required to carry data from its point of creation to its point of use"
-\cite{wadler1995monads}
-A lot of the time bind does exactly what you want,
+\cite{wadler1995monads}.
+A lot of the time bind does exactly what you want.
+%TODO FIn here!
 
 Indeed there it could be easy to argue that monads "force
 one in effect to write a functional facsimile of an imperative program",
@@ -619,6 +609,8 @@ it is easy to see that for many $f$ and $g$ that
 \begin{equation}
     g \circ f \not\equiv g \circ f
 \end{equation}
+Function composition is not commutative and neither
+is monad transformation.
 
 In practise we can define a \textit{monad transformer}
 to be a higher order monad which takes a monad
@@ -645,7 +637,7 @@ class MonadTrans t where
     with the effects of $m$ and maybe too.
     The naming convention for a monad transformer is to append "T".
 
-    We begin by defining the type of \texttt{MaybeT}
+    We begin by defining the type of \texttt{MaybeT},
     all we need is a monad \texttt{m} into which we will
     put a maybe value.
     \begin{verbatim}
@@ -727,6 +719,7 @@ which frees us from a lot of the criticisms that monad transformers have.
 Of course there remains the cost of unpredictable effects,
 that said OCaml is typically pure by convention so one has to ask
 what is the cost of complete purity?
+%TODO
 %Why?
 %How does this interact with modules composing?
 

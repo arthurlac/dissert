@@ -11,6 +11,10 @@
 \usepackage{stackrel}
 \usepackage{url}
 
+\newenvironment{spaced}[1]
+  {\begin{minipage}[c]{\textwidth}\vspace{#1}}
+  {\end{minipage}}
+
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[section]
 \newtheorem{example}{Example}[section]
@@ -29,13 +33,72 @@
 }
 
 \newcommand\bind{\gg=}
+\newcommand\name{It me}
+\newcommand\uni{That}
 
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{1em}
 
 \title{Algebraic Effects and Monads as Programming Techniques for Managing Effects}
+\author{\name}
+\date{May 2018}
 
 \begin{document}
+\maketitle
+\begin{center}
+BSc Computer Science
+\end{center}
+
+\pagebreak
+This dissertation may be made available for
+consultation within the University Library and
+may be photocopied or lent to other libraries for the purposes of consultation.
+
+\begin{spaced}{5em}
+Signed:
+\end{spaced}
+
+\pagebreak
+  \thispagestyle{empty}
+  \begin{spaced}{4em}
+    \begin{center}
+      \LARGE\textbf{Algebraic Effects and Monads as Programming Techniques for Managing Effects}
+    \end{center}
+  \end{spaced}
+  \begin{spaced}{3em}
+    \begin{center}
+      Submitted by: \name
+    \end{center}
+  \end{spaced}
+  \begin{spaced}{5em}
+    \section*{COPYRIGHT}
+
+    Attention is drawn to the fact that copyright of this dissertation rests
+    with its author. The Intellectual Property Rights of the products
+    produced as part of the project belong to the author unless otherwise specified
+    below, in accordance with the University of \uni's policy on intellectual property
+   (see http://www.\uni.ac.uk/ordinances/22.pdf).
+
+    This copy of the dissertation has been supplied on condition that anyone
+    who consults it is understood to recognise that its copyright rests with its
+    author and that no quotation from the dissertation and no information
+    derived from it may be published without the prior written consent of
+    the author.
+
+    \section*{Declaration}
+    This dissertation is submitted to the University of \uni\ in accordance
+    with the requirements of the degree of Bachelor of Science in the
+    Department of Computer Science. No portion of the work in this dissertation
+    has been submitted in support of an application for any other degree
+    or qualification of this or any other university or institution of learning.
+    Except where specifically acknowledged, it is the work of the author.
+  \end{spaced}
+
+  \begin{spaced}{5em}
+    Signed:
+  \end{spaced}
+\pagebreak
+
 \section{Abstract}
 %TODO LISCNECES
 %KEY IDEAS:
@@ -86,6 +149,35 @@ the generalisation being that mathematics is a powerful tool to understand the w
 it is fundementally unarguably more difficult to reason about code with side effects
 monads and algebraic effects help make this easier
 to help AE have some of the use of bind
+
+This project was motivated by my desire to understand both monads and algebraic effects.
+At first I found algebraic effects
+unapproachable,
+the academic background
+in even the simplest tutorials
+was above my own at the time.
+Ideally I have produced
+something which has the intuitive notions
+I have found myself very curious at the idea that an idea from
+mathematics can correspond to constructing elegant programs,
+the relation of these concepts
+to effects,
+their direct usefulness in
+every-day programming
+
+I hope I have elucidated
+both the theoretical background
+and how these concepts translates to
+useful tools for engineering.
+
+
+Hopefully I have desrcibed some ofthe considerations
+one must take when using
+monads and algebraic
+in engineering large programs.
+
+
+\textbf{Acknowledgements}
 
 \pagebreak
 \appendix
