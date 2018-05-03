@@ -363,8 +363,6 @@ Finally consider the relation between
 \texttt{(let\%bind,do)} and the Kleisli category of programs.
 Consider how convienent it is for programmers to have a category
 of programs where reliable error handling is built in by default.
-%TODO bind relation to kleisli cat
-%Can we consider bind as a morphism between two objects in the Kleisli Category?
 
 Imperative programming is undeniably popular,
 and much closer to how computers physically work than functional programming.
@@ -384,8 +382,7 @@ and imperative programmers have monad-like features
 In this section we will argue that monads are applicable
 in even imperative languages.
 
-
-
+%TODO!!!
 
 In the Go programming language one will frequently see this idiom
 \begin{verbatim}
@@ -643,7 +640,6 @@ class MonadTrans t where
 \begin{example}
     As a simple example we shall consider
     creating a transformer for the \texttt{Maybe} monad.
-    %TODO Explain exactly what we get
 
     We shall look at this using code from \cite{haskellT}.
     Our desired result is the \texttt{MaybeT} monad transformer
@@ -684,7 +680,6 @@ class MonadTrans t where
             Nothing -> return Nothing
             Just y  -> runMaybeT (f y)\end{verbatim}
     Finally we define the all important \texttt{lift} function,
-    %TODO lift will allow us to...
     \begin{verbatim}
     instance MonadTrans MaybeT where
     lift m1 = MaybeT (m1 >>= \ x -> return (Just x))
@@ -695,7 +690,6 @@ class MonadTrans t where
 
     -- resulting in
     lift = MaybeT . liftM Just\end{verbatim}
-    %TODO Example maybe IO
 \end{example}
 
 We have seen that we can combine monads,

@@ -35,19 +35,20 @@ it is not possible to distribute global control flow across several mechanisms.
 
 However algebraic effects are not simply just continuations,
 they are programmer defined effects.
-To the programmer perhaps this is perhaps the most interesting implication,
-we can now have programmer defined effects,
-moreover potentially specifying multiple handlers for each effect.
-Previously effects were completely implicit,
-and this is a large reason why they can cause bugs,
+To a programmer, this is perhaps the most interesting implication,
+we can now have programmer defined effects.
+Moreover potentially specifying multiple handlers for each effect.
+The lack of control programmers had over effects plays
+a large reason in why they are a source of many bugs,
 now they are under direct and explicit control of the programmer.
 
 Currently algebraic effects are a popular area of research,
+they represent the cutting edge of programming language design,
 as such we have seen a multitude of implementations in recent years.
 They may well enter the mainstream (as mainstream as monads at least)
 due to multicore OCaml being implemented in terms of algebraic effects.
 Additionally, it is likely that imperative programmers
-will find algebraic effects more intuitive than an equivalent monads.
+will find algebraic effects more intuitive than an equivalent monad.
 
 \textbf{Some Algebraic Effect Implementations}
 \begin{itemize}
@@ -84,7 +85,7 @@ than these other effects
 Let us examine input and output as an algebraic effect in detail,
 we will begin with the quintessential programming example; "Hello world!".
 We will be working in OCaml+effects\cite{ocamlplseff} for this example,
-using code from \cite{kceff}.\\
+basing our code on \cite{kceff}.\\
 
 \begin{example}
     Consider this example of an IO effect,
@@ -109,14 +110,14 @@ using code from \cite{kceff}.\\
     \begin{verbatim}
         let main () =
           try print_hello () with
-          | effect (Print s) k -> printf s ^ "\n"; continue k\end{verbatim}
+          | effect (Print s) k -> printf s; continue k\end{verbatim}
 \end{example}
 
 \subsection{Handlers}
-Thus far we have only seen how to perform effects,
+Thus far we have only examined how to perform effects,
 we need a mechanism by which to give these operations semantics.
-Where operations are constructors of effects we also need a dual,
-\textit{handlers} can be seen as deconstructors of effects\cite{Plotkin:2002dw}.
+Where operations are constructors of effects we also need a dual, \textit{handlers}.
+They can be seen as deconstructors of effects\cite{Plotkin:2002dw}.
 
 Handlers were introduced by Plotkin and Pretner\cite{Plotkin:2009dr},
 the new handling construct generalises the exception-handling
@@ -145,15 +146,17 @@ This advantage stems from the theory in fact,
 the "notion of countable enriched Lawvere theory
 provides us with a natural way to describe
 how computational effects may be combined
-"\cite{plotkin2004computational}.
+"\cite{plotkin2004computational}.\\
 
+\begin{example}
 Another example of algebraic effects is binary non-determinism,
-here we simulate a coin flip.\\
-\begin{example}\begin{verbatim}
-
+here we simulate a coin flip.
+\begin{verbatim}
     effect choice = Choose : bool
 
-    let coin_flip () =
+    type coin = Heads | Tails
+
+    let coin_flip () : coin =
         if (perform Choose) then
             Heads
         else
@@ -170,68 +173,57 @@ algebraic effects.\\
     Recall our IO and non-determinism examples,
     we can combine them with ease!
 \begin{verbatim}
-    effect IO =
-    | Print : string -> unit
-    | Read : string
+effect IO =
+| Print : string -> unit
+| Read : string
 
-    effect choice =
-    | Choose : bool
+effect choice =
+| Choose : bool
 
-    effect int_state =
-    | Get : int
-    | Set : int -> unit
-
-    let incr_maybe_twice () : int =
-      perform (Set ((perform Get) + 1));
-      if (perform Choose)
-      then perform (Set ((perform Get) + 1))
-      else perform (Print "incremented just once");
-      perform Get
+effect int_state =
+| Get : int
+| Set : int -> unit
 \end{verbatim}
-    We simply need to add a handler for each effect we incorporate.
+    We will attempt to combine these three effects.
+    Firstly we begin by defining a handler for
+    our stateful effects.
 \begin{verbatim}
-      match incr_maybe_twice () with
-      | result -> result
-      | effect (Put s') k -> (fun s -> continue k () s')
-      | effect Get k -> (fun s -> continue k s s)
-      | effect (Print s) k -> printf s; continue k
-      | effect Choose k -> continue k (Random.bool ())
+let run_state f ~init =
+  let comp =
+    match f () with
+    | x -> (fun s -> (s, x))
+    | effect (Put s') k -> (fun s -> continue k () s')
+    | effect Get k -> (fun s -> continue k s s)
+  in comp init
+\end{verbatim}
+We can run a stateful computation by calling this function as such
+\begin{verbatim}
+let incr_twice () : int =
+  perform (Set ((perform Get) + 1));
+  perform (Set ((perform Get) + 1));
+  perform (Get)
 
+run_state incr_twice ~init:0 (* = 2 *)
+\end{verbatim}
+We can combine this with non-determinism
+rather simply and elegantly.
+\begin{verbatim}
+let maybe_incr () : int =
+  if (perform Choose) then perform (Set ((perform Get) + 2);
+  perform (Get)
 
-  let run f ~init =
-    let comp =
-      match f () with
-      | x -> (fun s -> (s, x))
-      | effect (Put s') k -> (fun s -> continue k () s')
-      | effect Get k -> (fun s -> continue k s s)
-    in comp init
+match run_state maybe_incr_twice ~init:0 with
+| effect (Choose) k -> coninute k (Random.bool ())
 \end{verbatim}
 \end{example}
 
-%TODO FIx EFFECTS EXANPLES!!!!!!!!!!!!
-Of course having one global handler is neither elegant nor simple,
-we are free to handle effects at any point in the call stack,
-consider this example
-\begin{verbatim}
-    let incr_thrice () : int =
-        let incr_aux () =
-            perform Set ((perform Get) + 1);
-            perform Set ((perform Get) + 1);
-            perform Set ((perform Get) + 1)
-        in
-        match incr_aux () with
-        | effect (Put s') k -> (fun s -> continue k () s')
-        | effect Get k -> (fun s -> continue k s s)
-
-    let incrx3_maybe () : int =
-        let aux () =
-            if (perform Choose)
-            then incr_thrice ()
-            else perform_get ()
-        in
-        match aux () with
-        | effect Choose k -> continue k (Random.bool ())
-\end{verbatim}
+This is rather pleasant compared to
+an equivalent monad transformer stack.
+One can isolate which effects one wants to
+deal with at a function level,
+and one does not end up with a global
+coarse grained effect at the top level
+of the program.
 
 \subsection{Structuring Programs with Algebraic Effects}
 As we demonstrated monads are rather useful for structuring programs,
@@ -248,7 +240,8 @@ we will now explore whether an algebraic effect implementation
     let rec search chars t =
         match chars with
         | []      -> val_extract t
-        | c :: cs -> (find_child t c) >>= searh cs
+        | c :: cs -> bind_search (find_child t c) cs
+    and bind_search ot chars = ot >>= search chars
     in search key t
 \end{verbatim}
 
@@ -274,73 +267,105 @@ Contrast this with an algebraic effect implementation
 We can immediately see that this implementation is more verbose,
 which is not necessarily desirable;
 however the mechanisms of how this function works
-are more apparent.
-%TODO Ugh pls struct w ae
+are more apparent, which in some instances is desirable.
+Code which is hard to understand has a high burden.
+This code has the benefit of being direct, that said
+it comes at the cost of explicit data flow.
+
+
+Leijen\cite{leijen2017structured} establish that
+asynchrony, most common in EcmaScript (best known as JavaScript),
+can be expressed via algebraic effects.
+For example, web servers written in JavaScript us- ing NodeJS are highly asynchronous and without language support the resulting programs are difficult to write and de- bug due to excessive callbacks (e.g. the so-called “pyramid of doom”). However, extending a language with async-await is non-trivial, both in terms of semantics, as well as compila- tion complexity where async methods need to be translated into state-machines to simulate co-routine behavior [4].
+Again, algebraic effect handlers generalize naturally over this pattern. In contrast to the earlier examples we can generally not implement this directly in our language but need to use primitives of the host system. For concreteness, we assume NodeJS as our host with a primitive to call readline:
+
+Consider this psuedo JavaScript example for algebraic effects
+\begin{verbatim}
+function resolveAfter2Seconds() {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve('resolved');
+    }, 2000);
+  });
+}
+
+async function asyncCall() {
+  console.log('calling');
+  var result = await resolveAfter2Seconds();
+  console.log(result);
+  // expected output: "resolved"
+}
+\end{verbatim}
+(which also incorporates a proposal for pattern matching \cite{jspmatch})
+\begin{verbatim}
+function algebraicEffectCall() {
+    result = defaultVal => try { perform(new Promise(resolve => {
+        setTimeout(() => {resolve('resolved'); }, 2000);
+      }));
+    } with (promise) {
+      { state: "fulfilled", value: output } => output,
+      { state: "rejected",  value: err    } => {
+          console.log(err);
+          return defaultVal;
+      }
+    }
+}
+\end{verbatim}
+It goes without saying that this example is more verbose than the current state of async/await,
+it is much more expressively powerful.
+It is also worth noting \texttt{async/await} syntax is the result of several years of
+streamlining and programming language design.
+JS 
+
 
 \subsection{Conclusion}
 There are two core benefits of algebraic effects.
-Firstly, composition of algebraic effects is simple and pain free;
-we will examine this later.
+Firstly, composition of algebraic effects is simple and pain free.
 Secondly they allow a seperation between
 "the expression of an effectful computation from its implementation"
 \cite{dolan2015effective}.
-%TODO Expl more here pls
 This is a powerful tool of modular abstraction,
 for very similar reasons as monads are powerful
 for structuring programs.
 Previously we saw that we could separate the happy path from our error handling,
 it would appear that this separation is even more general with algebraic effects
 and their handlers.
-%TODO explain eff impl seper
-%We can separate an effect from its implementation,
 
 Finally we should note that
 algebraic effects are particularly popular for systems programming
 \cite{dolan2015effective, dolan2017concurrent, dolaneffectively};
 especially in comparison to monads.
-This is particularly due to performance implications,
-implementing concurrency through algebraic effects
-is comparable to the communicating sequential processes model
-of Go in terms of performance \cite{Dolan:2017}.
-This performance aspect is more striking
-if we consider the efficiency tax of a monad
+There are performance implications,
+between a monadic or algebraic effect architecture,
+for example recall the efficiency tax of a monad
 transformer stack\cite{o2008real}.
+Implementing concurrency through algebraic effects
+is comparable, in terms of performance,
+to the communicating sequential processes model of Go\cite{Dolan:2017}.
+Combined with the first two benefits this may explain the
+appeal of engineering large programs with algebraic effects.
 
-Algebraic effects may not be as elegant a tool as monads for structuring programs,
-but it is undeniable they are far more composable and more efficient.
-Thus they are more powerful tools for certain effects,
-for example concurrency.
-
-%lots of ppl say the monads when composed make effects coarse grained
-%and this is ugly
-%OCaml is impure but has monads, and soon effects, wen you need them?
-%is this the most 'practical' approach?
-algebraic effects are more scalable solution for engineering programs!
-this maybe one of the reasons why they seem to be so popular in systems
-programming
-
-especially in comparison to monads.
-This is particularly due to performance implications,
-implementing concurrency through algebraic effects
-is comparable to the communicating sequential processes model
-of Go in terms of performance \cite{Dolan:2017}.
-This performance aspect is more striking
-if we consider the efficiency tax of a monad
-transformer stack\cite{o2008real}.
-
-Algebraic effects are currently an
-immature programming language construct
-however have immense potential because of 
+With the benefits of algebraic effects extolled,
+they may not be as elegant a tool as monads for structuring programs (yet).
+Increased tooling and ecosystem maturity,
+particularly around their use and verbosity,
+could be beneficial.
+Nevertheless algebraic effects
+have immense potential because of
 their simplicity and flexibility.
 
-Would suggest automatic handlers,
-which would make the automatic behavuour of bind
-available to algebraic effects
+To approach the automatic convenience and fluidity of bind,
+I would suggest the introduction of the keyword
+\texttt{default\_with} which would provide a default
+handler for each effect. While still
+allowing the default handlers to be overridden
+on a case by case basis.
+Allowing the handlers to 
 \begin{verbatim}
 effect Result =
     | Return : 'a -> ()
     | Raise  : 'e -> ()
-with default try
+default_with
     | effect (Return v) -> Ok v
     | effect (Raise e) -> Err e
 \end{verbatim}
@@ -348,8 +373,12 @@ Also note that this solves a common issue with
 OCaml, there is no way to return early in a function
 so one often has to hijack the current exception
 system to emulate this behaviour.
+If the above effect is defined all one would have
+to do is call \texttt{perform (Return v)},
+as long as the function is within a try clause and has
+the return type \texttt{('a, 'e) result}.
 
-Consider that we often see
+Considering that we often see
 \begin{verbatim}
 effect Choose : bool
 let choose () = perform Choose\end{verbatim}
@@ -358,15 +387,13 @@ or similarly
 effect Put : t -> unit
 let put v = perform (Put v)
 \end{verbatim}
-Perhaps it would be worthwhile to have this code
-generated via ppx, for example
+Another recommendation would be that it is likely
+worthwhile to have this code generated via ppx, for example
 \begin{verbatim}
-effect Put : t -> unit [@@deriving fun]
+effect Put : t -> unit [@@deriving perform_func]
 \end{verbatim}
 
 These suggestions are motivated by the fact that
 given a choice between a perfect but inconvenient tool
 and a imperfect but convenient tool
 a programmer will the vast majority of the time choose the latter.
-
-

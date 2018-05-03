@@ -50,7 +50,7 @@ Now implementing $new$ is pretty easy.
     // === Array [1]
 \end{verbatim}
 
-To define bind we gotta define an auxillary function called join first,
+To define bind we gotta define an auxiliary function called join first,
 it takes a list of lists and returns a list.
 It basically just flattens the list given,
 appending each list to the one before it.
@@ -65,9 +65,9 @@ appending each list to the one before it.
 Once we have done that, defining bind is pretty simple
 \begin{verbatim}
     const bind = (x, f) => join(x.map(f));
-    const sqrtButKeep = x => [x, x*x];
-    console.log(bind([2, 9, 49], double));
-    // === Array [2, 4, 9, 81, 49, 2401]
+    const sqrButKeep = x => [x, x*x];
+    console.log(bind([2, -9, 49], sqrButKeep));
+    // === Array [2, 4, -9, 81, 49, 2401]
 \end{verbatim}
 
 So these examples illustrate what the functions do,
@@ -86,63 +86,16 @@ They can even replace the most common Go idiom:
 
 Let us prove
 
+First we need to introduce the \texttt{letbind} operator in JavaScript
+
+\begin{verbatim}
+\end{verbatim}
+
 \subsection{Resumable Exceptions}
-A resumable exception is an extension of
-exceptions in 
-For programmers
-we are not merely playing with delimited continuations (or resumable exceptions),
+A resumable exception is an extension normal exceptions
+and exceptions handlers, except we get a continuation to play with.
+Given this we can implement async/await
 
-For a casual understanding,
-we can begin to explain algebraic effects by saying that
-we have effects we can manipulate algebraically; that is to say,
-the interpretation of an expression is
-subject to an operator and its sub-expressions.
-For instance, $a + b$ is interpreted as an operator
-$+$ with its own semantics along with the value of its
-two sub-expressions $a$ and $b$.
-As our first example, consider obtaining input from
-\texttt{stdin} using the operation \texttt{read} where
-\begin{equation}
-    read :: \texttt{()} \rightarrow IO\ String
-\end{equation}
-as a nullary (of zero arguments) operator with no sub-expressions.
-
-We can further our initial understanding with another view
-relating algebraic effects to continuations,
-or rather algebraic effects being given by continuations.
-Whenever an operation is performed we have a continuation
-passed to the handler;
-which the handler uses to "implement" that effect.
-This view also allows us an initial but intuitive
-understanding of why algebraic effects are incompatible with continuations;
-it is not possible to distribute global control flow across several mechanisms.
-
-
-\begin{example}
-    Consider this example of an IO effect,
-    first we define an effect \texttt{IO},
-    this is, in OCaml, similar to defining
-    a new exception type.
-    We then describe two constructors
-    \texttt{Print} and \texttt{Read}
-    of the effect \texttt{IO}.
-    \begin{verbatim}
-        effect IO =
-          | Print : string -> unit
-          | Read : string\end{verbatim}
-    Now to actually have an effect we need to use the primitive \texttt{perform},
-    we construct an effect via \texttt{(Print "Hello world!")}.
-    \begin{verbatim}
-        let print_hello =
-            perform (Print "Hello world!")\end{verbatim}
-    Because OCaml is impure, the handler of this effect looks rather obtuse,
-    however in a pure or lazy language this effect and handler would be necessary.
-    Here it is just an indirection for the sake of an example.
-    \begin{verbatim}
-        let () =
-          try print_hello with
-          | effect (Print s) k -> printf s; continue k\end{verbatim}
-\end{example}
 \subsection{Conclusion}
 
 A lot of the time bind does exactly what you want,
